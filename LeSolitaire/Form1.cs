@@ -11,36 +11,42 @@ using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml;
+using LeSolitaireLogique;
 
 namespace LeSolitaire
 {
   public partial class Form1 : Form
   {
-    private const string fichierSituationInitiale = @"C:\Users\halte\reposDivers\LeSolitaire\Jeux\classique.txt";
+
+    private void Form1_Load(object sender, EventArgs e)
+    {
+      ucListeFichiers.Init("danielHalte/LeSolitaire");
+    }
+
     public Form1()
     {
       InitializeComponent();
     }
-    private Logique logique;
+
+    private Logique Logique;
+    private LogiqueRechercheMouvements LogiqueRechercheMouvements;
     List<Mvt> Solution;
     int IdxEtape;
     private void btRecherche_Click(object sender, EventArgs e)
     {
-      DateTime start = DateTime.Now;
-      Debug.Print($"Début recherche {start:HH:mm:ss.fff}");
-      Solution = null;
-      List<(int x, int y, bool presencePierre)> situationInitiale = null;
-      try
+      if (!InitLogique(enumLogique.Logique))
       {
-        situationInitiale = Common.ChargeContenuFichierSituationInitiale(new FileInfo(fichierSituationInitiale));
-      }
-      catch (ApplicationException ex)
-      {
-        MessageBox.Show($"Erreur au chargement de {fichierSituationInitiale} : {ex.Message} ");
         return;
       }
-      logique = new Logique(situationInitiale);
-      Mvt lastMvtSolution = logique.RechercheSolution();
+      // MSIL, don't prefer 32 bits, <gcAllowVeryLargeObjects enabled="true" in app.config, MaxWorkingSet
+      IntPtr intPtr = Process.GetCurrentProcess().MaxWorkingSet;
+      intPtr = IntPtr.Add(intPtr, intPtr.ToInt32());
+      Process.GetCurrentProcess().MaxWorkingSet = intPtr;
+
+      DateTime start = DateTime.Now;
+      Debug.Print($"Début recherche {start:HH:mm:ss.fff}");
+      Mvt lastMvtSolution = Logique.RechercheSolution();
       DateTime stop = DateTime.Now;
       Debug.Print($"Fin recherche {stop:HH:mm:ss.fff}");
       Debug.Print($"Durée {(stop - start)}");
@@ -55,6 +61,49 @@ namespace LeSolitaire
         MessageBox.Show("Aucune solution trouvée");
       }
       pbSolution.Refresh();
+    }
+    private enum enumLogique
+    {
+      Logique,
+      LogiqueRechercheMouvement
+    }
+    private bool InitLogique(enumLogique enumLogique)
+    {
+      string fichierSituationInitiale = ucListeFichiers.Value;
+      try
+      {
+        if (!File.Exists(fichierSituationInitiale))
+          throw new ApplicationException("Le fichier de description est invalide ou inexistant");
+      }
+      catch (Exception ex)
+      {
+        MessageBox.Show(ex.Message, null, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        return false;
+      }
+      ucListeFichiers.Save();
+      Solution = null;
+      SituationRaw situationInitiale;
+      try
+      {
+        situationInitiale = Common.ChargeContenuFichierSituation(new FileInfo(fichierSituationInitiale));
+      }
+      catch (ApplicationException ex)
+      {
+        MessageBox.Show($"Erreur au chargement de {fichierSituationInitiale} : {ex.Message} ", null, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        return false;
+      }
+      switch (enumLogique)
+      {
+        case enumLogique.Logique:
+          Logique = new Logique(situationInitiale);
+          break;
+        case enumLogique.LogiqueRechercheMouvement:
+          LogiqueRechercheMouvements = new LogiqueRechercheMouvements(situationInitiale);
+          break;
+        default:
+          break;
+      }
+      return true;
     }
 
     private List<Mvt> ConvertitSolution(Mvt solution)
@@ -73,7 +122,7 @@ namespace LeSolitaire
 
     private void btUp_Click(object sender, EventArgs e)
     {
-      if (logique == null || Solution == null) return;
+      if (Logique == null || Solution == null) return;
       if (IdxEtape >= 0)
       {
         --IdxEtape;
@@ -83,7 +132,7 @@ namespace LeSolitaire
 
     private void btDown_Click(object sender, EventArgs e)
     {
-      if (logique == null || Solution == null) return;
+      if (Logique == null || Solution == null) return;
       if (IdxEtape < Solution.Count - 1)
       {
         ++IdxEtape;
@@ -95,13 +144,13 @@ namespace LeSolitaire
     {
       Graphics g = e.Graphics;
       g.FillRectangle(new SolidBrush(pbSolution.BackColor), pbSolution.ClientRectangle);
-      if (logique == null)
+      if (Logique == null)
       {
         return;
       }
 
       // Nombre de cases en largeur, en hauteur
-      int NbCasesWidth = Coordonnees.xMax - Coordonnees.xMin + 1, NbCasesHeight = Coordonnees.yMax - Coordonnees.yMin + 1;
+      int NbCasesWidth = Logique.CoordonneesStock.xMax - Logique.CoordonneesStock.xMin + 1, NbCasesHeight = Logique.CoordonneesStock.yMax - Logique.CoordonneesStock.yMin + 1;
       // Largeur suggérée d'une case, hauteur suggérée d'une case
       int CaseWidth = pbSolution.Width / NbCasesWidth;
       int CaseHeight = pbSolution.Height / NbCasesHeight;
@@ -112,35 +161,109 @@ namespace LeSolitaire
       int margeHorizontale = (pbSolution.Width - NbCasesWidth * CaseEdge) / 2;
       int margeVerticale = (pbSolution.Height - NbCasesHeight * CaseEdge) / 2;
       // Reconstitution de la situation à l'étape IdxEtape
-      Situation situation = new Situation(logique.SituationInitiale);
+      Situation situation = new Situation(Logique.SituationInitiale);
       for (int idxEtape = 0; idxEtape <= IdxEtape; idxEtape++)
       {
         Mvt mvt = Solution[idxEtape];
-        situation.DeplacePierre(mvt.Depart, mvt.Saut, mvt.Arrivee);
+        situation.DeplacePierre(mvt, Logique.CoordonneesStock.Etendue);
       }
       // Dessin des cases du plateau
       Image pierre = Properties.Resources.Pierre;
       Image creux = Properties.Resources.Creux;
-      for (int x = Coordonnees.xMin; x <= Coordonnees.xMax; x++)
+      for (int x = Logique.CoordonneesStock.xMin; x <= Logique.CoordonneesStock.xMax; x++)
       {
-        for (int y = Coordonnees.yMin; y <= Coordonnees.yMax; y++)
+        for (int y = Logique.CoordonneesStock.yMin; y <= Logique.CoordonneesStock.yMax; y++)
         {
-          Coordonnee coordonnee = Coordonnees.GetCoordonnee(x, y);
-          if (logique.Plateau.Contains(coordonnee))
+          Coordonnee coordonnee = Logique.CoordonneesStock.GetCoordonnee(x, y);
+          if (Logique.Plateau.Contains(coordonnee))
           {
             Image img = situation.Contains(coordonnee) ? pierre : creux;
-            Rectangle rc = new Rectangle(margeHorizontale + (coordonnee.X - Coordonnees.xMin) * CaseEdge, margeVerticale + (coordonnee.Y - Coordonnees.yMin) * CaseEdge, CaseEdge, CaseEdge);
+            Rectangle rc = new Rectangle(margeHorizontale + (coordonnee.X - Logique.CoordonneesStock.xMin) * CaseEdge, margeVerticale + (coordonnee.Y - Logique.CoordonneesStock.yMin) * CaseEdge, CaseEdge, CaseEdge);
             g.DrawImage(img, rc);
           }
         }
       }
-      // Dessin d'une flèche qui montre le prochain mouvement
-      //if (IdxEtape < Solution.Count - 1)
-      //{
-      //  Mvt prochain = Solution[IdxEtape + 1];
-      //  Image fleche = Properties.Resources.Fleche;
 
-      //}
     }
+
+    private void tabMain_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      if (tabMain.SelectedTab == tabRechercheManuelle)
+      {
+        if (!InitLogique(enumLogique.Logique))
+        {
+          return;
+        }
+        ucPlateauManuel.InitJeu(Logique.CoordonneesStock, Logique.Plateau, Logique.SituationInitiale, null, true);
+      }
+    }
+
+    private LogiqueIncrementale LogiqueIncrementale;
+
+    private void btRechercheIncrementale_Click(object sender, EventArgs e)
+    {
+      if (!InitLogiqueIncrementale())
+      {
+        return;
+      }
+      LogiqueIncrementale.RechercheIncrementale();
+    }
+
+    private bool InitLogiqueIncrementale()
+    {
+      string fichierSituationInitiale = ucListeFichiers.Value;
+      try
+      {
+        if (!File.Exists(fichierSituationInitiale))
+          throw new ApplicationException("Le fichier de description est invalide ou inexistant");
+      }
+      catch (Exception ex)
+      {
+        MessageBox.Show(ex.Message, null, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        return false;
+      }
+      ucListeFichiers.Save();
+      List<(int x, int y, bool presencePierre)> situationInitiale;
+      try
+      {
+        situationInitiale = Common.ChargeContenuFichierSituation(new FileInfo(fichierSituationInitiale));
+      }
+      catch (ApplicationException ex)
+      {
+        MessageBox.Show($"Erreur au chargement de {fichierSituationInitiale} : {ex.Message} ", null, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        return false;
+      }
+      LogiqueIncrementale = new LogiqueIncrementale(new FileInfo(fichierSituationInitiale), 10);
+      return true;
+    }
+
+    private void btRechercheMouvements_Click(object sender, EventArgs e)
+    {
+      if (!InitLogique(enumLogique.LogiqueRechercheMouvement))
+      {
+        return;
+      }
+      string final = @"
+  ooo
+ oxoox
+xoxoxoo
+xxxxoxx
+xxxxxxx
+ xxxxx
+  xxx";
+      Mvt solution = LogiqueRechercheMouvements.RechercheMouvements(final);
+      if (solution != null)
+      {
+
+        Solution = ConvertitSolution(solution);
+      }
+      IdxEtape = -1;
+      if (Solution == null)
+      {
+        MessageBox.Show("Aucune solution trouvée");
+      }
+      pbSolution.Refresh();
+    }
+
   }
 }

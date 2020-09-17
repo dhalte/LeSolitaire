@@ -4,10 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LeSolitaire
+namespace UserControls
 {
-  class Plateau : HashSet<Coordonnee>
+  public enum ucBoutonFx
   {
-    public void AddCase(Coordonnee coordonnee) => this.Add(coordonnee);
+    LeftLeft = 0,
+    Left = 1,
+    Right = 2,
+    RightRight = 3,
   }
 }
