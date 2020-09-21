@@ -8,12 +8,13 @@ namespace LeSolitaireLogique
 {
   public class SolutionMouvement
   {
-    public SolutionMouvement(Coordonnee pierre, enumDirection mouvement)
-    {
-      Pierre = pierre;
-      Direction = mouvement;
-    }
-    public readonly Coordonnee Pierre;
+    public readonly byte IdxPierre;
     public readonly enumDirection Direction;
+
+    public SolutionMouvement(byte idxPierre, enumDirection direction)
+    {
+      IdxPierre = idxPierre;
+      Direction = direction;
+    }
   }
 }

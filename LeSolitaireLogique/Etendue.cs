@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,25 +9,41 @@ namespace LeSolitaireLogique
 {
   public class Etendue
   {
-    // A la différence de Rectangle, les bornes supérieures sont contenues
-    public Etendue(int xMin, int xMax, int yMin, int yMax)
+    // Les dimensions du rectangle englobant
+    public Etendue(int largeur, int hauteur)
     {
-      this.xMin = xMin;
-      this.xMax = xMax;
-      this.yMin = yMin;
-      this.yMax = yMax;
+      this.Largeur = largeur;
+      this.Hauteur = hauteur;
+      xCentre = Largeur / 2;
+      yCentre = Hauteur / 2;
+      NbCasesRectangleEnglobant = Largeur * Hauteur;
     }
-    public readonly int xMin;
-    public readonly int xMax;
-    public readonly int yMin;
-    public readonly int yMax;
-    public bool Contains(int x, int y) => xMin <= x && x <= xMax && yMin <= y && y <= yMax;
-    //Indice case dans le rectangle minimal contenant le plateau, à partir de 0
-    public byte FromXY(int x, int y) => (byte)(x - xMin + (xMax - xMin + 1) * (y - yMin));
-    // coordonnées casedans le rectangle minimal contenant le plateau, à partir de (xMin, yMin)
-    public (int x, int y) FromByte(byte i) => (i % (xMax - xMin + 1) + xMin, i / (xMax - xMin + 1) + yMin);
+    public readonly int Largeur;
+    public readonly int Hauteur;
+    public readonly int NbCasesRectangleEnglobant;
+    // Celui utilisé pour convertir en coordonnées de part et d'autre de l'origine
+    // Ne pas utiliser pour le calcul des symétries (quoique pour les plateaux classique et français, les deux coïncident)
+    public readonly int xCentre;
+    public readonly int yCentre;
 
-    public byte FromXY(Coordonnee coordonnee) => FromXY(coordonnee.X, coordonnee.Y);
+    public bool Contains(int idxCase) => 0 <= idxCase && idxCase < NbCasesRectangleEnglobant;
+    public bool Contains(int x, int y) => 0 <= x && x < Largeur && 0 <= y && y < Hauteur;
+    
+    //Indice case dans le rectangle englobant, à partir de 0.
+    //Les coordonnées minimales sont 0
+    public byte FromXY(int x, int y) => (byte)(x + Largeur * y);
+    public byte FromXY((int x, int y) coordonnees) => (byte)(coordonnees.x + Largeur * coordonnees.y);
+
+    //Indice case dans le rectangle minimal contenant le plateau, à partir de 0
+    //Les coordonnées sont centrées
+    public byte FromXYCentre(int x, int y) => (byte)((x + xCentre) + Largeur * (y + yCentre));
+    
+    // coordonnées case dans le rectangle englobant, les coordonnées minimales sont 0
+    public (int x, int y) FromByte(byte i) => (i % Largeur, i / Largeur);
+
+    // Fournir des coordonnées centrées autour de l'origine, pour une lecture plus facile des solutions.
+    public (int x, int y) Centrer(int x, int y) => (x - xCentre, y - yCentre);
+    public (int x, int y) Centrer((int x, int y) c) => (c.x - xCentre, c.y - yCentre);
 
   }
 }

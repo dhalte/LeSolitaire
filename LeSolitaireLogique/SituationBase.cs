@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace LeSolitaireLogique
 {
-  public static class Extensions
+  public abstract class SituationBase
   {
-
   }
 }

@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,26 +43,26 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common.cs" />
-    <Compile Include="Coordonnee.cs" />
-    <Compile Include="CoordonneesStock.cs" />
     <Compile Include="enumDirection.cs" />
     <Compile Include="enumFeedbackHint.cs" />
     <Compile Include="enumState.cs" />
+    <Compile Include="enumSymetries.cs" />
     <Compile Include="Etendue.cs" />
-    <Compile Include="Extensions.cs" />
     <Compile Include="IFeedback.cs" />
     <Compile Include="Logique.cs" />
-    <Compile Include="LogiqueParLesDeuxBouts.cs" />
-    <Compile Include="LogiqueRechercheMouvements.cs" />
-    <Compile Include="LogiqueIncrementale.cs" />
+    <Compile Include="LogiqueConfiguration.cs" />
+    <Compile Include="Matrice2x3.cs" />
     <Compile Include="Mvt.cs" />
-    <Compile Include="ParLesDeuxBoutsConfig.cs" />
+    <Compile Include="Config.cs" />
     <Compile Include="Plateau.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScheduleInfo.cs" />
     <Compile Include="Situation.cs" />
-    <Compile Include="SituationPacked.cs" />
+    <Compile Include="SituationBase.cs" />
+    <Compile Include="SituationEtude.cs" />
+    <Compile Include="SituationInitiale.cs" />
     <Compile Include="SituationRaw.cs" />
-    <Compile Include="SituationsStock.cs" />
+    <Compile Include="SituationStock.cs" />
     <Compile Include="Solution.cs" />
     <Compile Include="SolutionMouvement.cs" />
   </ItemGroup>

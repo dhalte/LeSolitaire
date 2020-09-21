@@ -9,8 +9,8 @@ namespace LeSolitaireLogique
   public class Mvt
   {
     public Mvt Parent;
-    public Coordonnee Depart;
-    public Coordonnee Saut;
-    public Coordonnee Arrivee;
+    public byte Depart;
+    public byte Saut;
+    public byte Arrivee;
   }
 }

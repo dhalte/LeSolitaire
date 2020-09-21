@@ -1,80 +1,111 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace LeSolitaireLogique
 {
-  public class Situation : HashSet<Coordonnee>
+  // L'héritage est nécessaire pour l'appel à HashSet<SituationBase>.Add(Situation)
+  public class Situation : SituationBase
   {
-    public Situation() { }
-    // RQ : on ne copie pas le hashcode lors de ce clonage, mais on n'en a pas besoin
-    // on clone la situation pour la modifier par DeplacePierre, et à ce moment, le hashcode définitif sera calculé.
-    public Situation(IEnumerable<Coordonnee> collection) : base(collection) { }
-    public SituationPacked SituationCompacte;
+    public byte[] Pierres;
 
-    public void AddPierre(Coordonnee coordonnee)
+    public Situation(Etendue etendue, SituationRaw plateauRaw)
     {
-      this.Add(coordonnee);
-    }
-    public void DeplacePierre(Mvt mvt, Etendue etendue)
-    {
-      Remove(mvt.Depart);
-      Remove(mvt.Saut);
-      Add(mvt.Arrivee);
-      CalculeSituationCompacte(etendue);
-    }
-    public int NbPierres { get => this.Count; }
-
-    internal void RestaurePierre(Mvt mvt, Etendue etendue)
-    {
-      Add(mvt.Depart);
-      Add(mvt.Saut);
-      Remove(mvt.Arrivee);
-      CalculeSituationCompacte(etendue);
-    }
-
-    internal void CalculeSituationCompacte(Etendue etendue)
-    {
-      SituationCompacte = new SituationPacked(this.Count);
-      foreach (Coordonnee coordonnee in this)
+      int len = plateauRaw.Count;
+      List<byte> pierres = new List<byte>();
+      for (byte idx = 0; idx < len; idx++)
       {
-        SituationCompacte.Add(etendue.FromXY(coordonnee));
+        (int x, int y, bool pierre) @case = plateauRaw[idx];
+        if (@case.pierre)
+        {
+          pierres.Add(etendue.FromXY(@case.x, @case.y));
+        }
       }
-      SituationCompacte.Sort();
+      Pierres = pierres.ToArray();
     }
 
-    internal bool MouvementPossible((Coordonnee A, Coordonnee B, Coordonnee C) mvtPlateau)
+    public Situation(bool[] pierresImages)
     {
-      return Contains(mvtPlateau.A) && Contains(mvtPlateau.B) && !Contains(mvtPlateau.C);
-    }
-    internal bool MouvementInversePossible((Coordonnee A, Coordonnee B, Coordonnee C) mvtPlateau)
-    {
-      return !Contains(mvtPlateau.A) && !Contains(mvtPlateau.B) && Contains(mvtPlateau.C);
+      List<byte> pierres = new List<byte>();
+      for (byte idx = 0; idx < pierresImages.Length; idx++)
+      {
+        if (pierresImages[idx])
+        {
+          pierres.Add(idx);
+        }
+      }
+      Pierres = pierres.ToArray();
     }
 
-    internal string ToString(Plateau plateau, CoordonneesStock coordonneesStock)
+    public Situation(byte[] situationRaw)
+    {
+      Pierres = new byte[situationRaw.Length];
+      Array.Copy(situationRaw, Pierres, situationRaw.Length);
+    }
+
+    public int NbPierres => Pierres.Length;
+    public override bool Equals(object obj)
+    {
+      int l = NbPierres;
+      // On assume que 
+      //  obj est toujours un objet de type Situation ou SituationEtude
+      //  le tableau de this et obj est toujours alloué
+      //  les deux tableaux ont même taille
+      //  qu'ils sont triés par ordre croissant
+      Situation situation = obj as Situation;
+      if (situation != null)
+      {
+        for (int i = 0; i < NbPierres; i++)
+        {
+          if (Pierres[i] != situation.Pierres[i]) 
+          {
+            return false; 
+          }
+        }
+        return true;
+      }
+      return ((SituationEtude)obj).Equals(this);
+    }
+    public override int GetHashCode()
+    {
+      int hashcode = 7;
+      int l = NbPierres;
+      unchecked
+      {
+        for (int i = 0; i < l; i++)
+        {
+          hashcode = 31 * hashcode + Pierres[i];
+        }
+      }
+      return hashcode;
+    }
+    public string Dump(Plateau plateau)
     {
       StringBuilder sb = new StringBuilder();
-      for (int y = coordonneesStock.yMin; y <= coordonneesStock.yMax; y++)
+      for (int y = 0; y < plateau.Etendue.Hauteur; y++)
       {
-        for (int x = coordonneesStock.xMin; x <= coordonneesStock.xMax; x++)
+        for (int x = 0; x < plateau.Etendue.Largeur; x++)
         {
-          Coordonnee coordonnee = coordonneesStock.GetCoordonnee(x, y);
-          if (this.Contains(coordonnee))
+          bool bPlateau = plateau.Contains(x, y);
+          byte idxCase = plateau.Etendue.FromXY(x, y);
+          bool bPierre = Pierres.Contains(idxCase);
+          char c = ' ';
+          if (bPlateau)
           {
-            sb.Append('x');
-          }
-          else if (plateau.Contains(coordonnee))
-          {
-            sb.Append('o');
+            c = bPierre ? 'x' : 'o';
           }
           else
           {
-            sb.Append(' ');
+            if (bPierre)
+            {
+              c = 'X';
+              Debugger.Break();
+            }
           }
+          sb.Append(c);
         }
         sb.AppendLine();
       }

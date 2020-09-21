@@ -9,21 +9,14 @@ namespace LeSolitaireLogique
 {
   public class Common
   {
-    // Le plateau est décrit de façon textuelle ainsi :
-    // chaque ligne de texte est une ligne du plateau
-    // chaque espace est l'absence de case, 
-    // chaque x est la présence d'une pierre
-    // chaque o est une case vide
-    public static SituationRaw ChargeContenuFichierSituation(FileInfo file)
-    {
-      string contenuFichier = File.ReadAllText(file.FullName);
-      return ChargeContenuStringSituation(contenuFichier);
-    }
 
-    public static SituationRaw ChargeContenuStringSituation(string description)
+    // Renvoie une liste des cases vides ou contenant une pierre trouvées dans la description
+    // Le rectangle englobant est réglé pour que les coordonnées minimales des cases soit 0
+    public static SituationRaw ChargeSituationRaw(string description)
     {
+      int xMin = int.MaxValue, xMax = int.MinValue, yMin = int.MaxValue, yMax = int.MinValue;
       string[] lignes = description.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-      SituationRaw contenu = new SituationRaw();
+      SituationRaw situationRaw = new SituationRaw();
       for (int l = 0; l < lignes.Length; l++)
       {
         string ligne = lignes[l];
@@ -35,39 +28,47 @@ namespace LeSolitaireLogique
             case ' ':
               break;
             case 'x':
-              contenu.Add((i, l, true));
+              situationRaw.Add((i, l, true));
               break;
             case 'o':
-              contenu.Add((i, l, false));
+              situationRaw.Add((i, l, false));
               break;
             default:
               throw new ApplicationException($"Caractère incorrect en ligne {l + 1}, position {i + 1}");
           }
+          switch (c)
+          {
+            case 'x':
+            case 'o':
+              if (xMin > i) xMin = i;
+              if (xMax < i) xMax = i;
+              if (yMin > l) xMin = l;
+              if (yMax < l) xMax = l;
+              break;
+          }
         }
       }
-      return contenu;
+      if (situationRaw.Count == 0)
+      {
+        throw new ApplicationException("Aucune pierre, aucune case n'ont été trouvées dans la description");
+      }
+      if (xMin != 0 || yMin != 0)
+      {
+        situationRaw.ForEach(c => { c.x -= xMin; c.y -= yMin; });
+      }
+      return situationRaw;
     }
 
+    // La situation est déjà réglée pour que les coordonnées minimales soient 0
     public static Etendue CalculeEtendue(SituationRaw liste)
     {
-      int xMin = int.MaxValue; int xMax = int.MinValue; int yMin = int.MaxValue; int yMax = int.MinValue;
+      int xMax = int.MinValue, yMax = int.MinValue;
       liste.ForEach(c =>
       {
-        if (c.x < xMin) xMin = c.x;
-        if (c.y < yMin) yMin = c.y;
         if (c.x > xMax) xMax = c.x;
         if (c.y > yMax) yMax = c.y;
       });
-      return new Etendue(xMin, xMax, yMin, yMax);
-    }
-    public static Etendue CalculeEtendueCentree(SituationRaw liste)
-    {
-      Etendue etendue = Common.CalculeEtendue(liste);
-      int xCentre = (etendue.xMin + etendue.xMax) / 2;
-      int yCentre = (etendue.yMin + etendue.yMax) / 2;
-      // Toutes les cases sont situées dans le rectangle ci dessous
-      etendue = new Etendue(etendue.xMin - xCentre, etendue.xMax - xCentre, etendue.yMin - yCentre, etendue.yMax - yCentre);
-      return etendue;
+      return new Etendue(xMax + 1, yMax + 1);
     }
 
     public static enumDirection DecodeDirection(string code)

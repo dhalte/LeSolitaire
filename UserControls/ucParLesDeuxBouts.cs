@@ -19,11 +19,11 @@ namespace UserControls
       InitializeComponent();
     }
 
-    private LogiqueParLesDeuxBouts Logique;
+    private Logique Logique;
     private void ucParLesDeuxBouts_Load(object sender, EventArgs e)
     {
       ucFichier.Init("danielHalte/LeSolitaire/ParLesDeuxBouts");
-      Logique = new LogiqueParLesDeuxBouts(this);
+      Logique = new Logique(this);
     }
 
     private void btRechercher_Click(object sender, EventArgs e)

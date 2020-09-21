@@ -43,8 +43,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PlateauEventArgs.cs" />
-    <Compile Include="PlateauInteraction.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -83,12 +81,6 @@
     <Compile Include="ucPlateau.Designer.cs">
       <DependentUpon>ucPlateau.cs</DependentUpon>
     </Compile>
-    <Compile Include="ucRechercheManuelle.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="ucRechercheManuelle.Designer.cs">
-      <DependentUpon>ucRechercheManuelle.cs</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -109,9 +101,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ucPlateau.resx">
       <DependentUpon>ucPlateau.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ucRechercheManuelle.resx">
-      <DependentUpon>ucRechercheManuelle.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

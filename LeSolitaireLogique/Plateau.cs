@@ -1,113 +1,155 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Schema;
 
 namespace LeSolitaireLogique
 {
-  public class Plateau : HashSet<Coordonnee>
+  public class Plateau
   {
-    public void AddCase(Coordonnee coordonnee) => this.Add(coordonnee);
-    public Dictionary<Coordonnee, List<Coordonnee>> PointsSymetriques;
-    public int NbSymetries;
-    private enum enumSymetries
+    public Etendue Etendue;
+    // tableau de la taille du rectangle englobant
+    public bool[] PresenceCase;
+    // liste des indices des cases du plateau
+    public byte[] Cases;
+    public int NbCasesPlateau => Cases.Length;
+    public List<(byte idxOrigine, byte idxVoisin, byte idxDestination)> MouvementsPossibles;
+    // Chaque élément de cette liste est un tableau de Etendue.Largeur * Etendue.Hauteur indirections.
+    // Quand on veut calculer l'image d'une situation donnée par la liste des indices de ses pierres, 
+    // on utilise chacun de ces indices dans un de ces tableaux pour calculer l'indice image.
+    public List<byte[]> Symetries;
+    public int NbSymetries => Symetries.Count;
+
+    public Plateau(SituationRaw situation)
     {
-      rot90,
-      rot180,
-      rot270,
-      hor,
-      vert,
-      premDiag,
-      secondDiag
-    }
-    class Matrice2x3
-    {
-      public int[,] m;
-      public Matrice2x3((int x00, int x01, int x02) row0, (int x10, int x11, int x12) row1)
+      Etendue = Common.CalculeEtendue(situation);
+      PresenceCase = new bool[Etendue.Largeur * Etendue.Hauteur];
+      Cases = new byte[situation.Count];
+      int idxInCases = 0;
+      foreach ((int x, int y, bool pierre) c in situation)
       {
-        m = new int[2, 3];
-        m[0, 0] = row0.x00;
-        m[0, 1] = row0.x01;
-        m[0, 2] = row0.x02;
-        m[1, 0] = row1.x10;
-        m[1, 1] = row1.x11;
-        m[1, 2] = row1.x12;
+        byte idxCase = Etendue.FromXY(c.x, c.y);
+        PresenceCase[idxCase] = true;
+        Cases[idxInCases++] = idxCase;
+      }
+      ConsoliderPlateau();
+    }
+
+    public bool Contains(int idxCase) => 0 <= idxCase && idxCase < Etendue.NbCasesRectangleEnglobant && PresenceCase[idxCase];
+
+    public bool Contains(int x, int y) => 0 <= x && x < Etendue.Largeur && 0 <= y && y < Etendue.Hauteur && Contains(Etendue.FromXY(x, y));
+
+    // Calculer les mouvements possibles dans le plateau
+    // Calculer les symétries du plateau
+    private void ConsoliderPlateau()
+    {
+      CalculMouvementsPossibles();
+      CalculSymetries();
+    }
+
+    private void CalculMouvementsPossibles()
+    {
+      MouvementsPossibles = new List<(byte idxOrigine, byte idxVoisin, byte idxDestination)>();
+      //                                                             Nord     Est     Sud     Ouest
+      List<(int x, int y)> directions = new List<(int x, int y)>() { (0, -1), (1, 0), (0, 1), (-1, 0) };
+      foreach (byte idxOrigine in Cases)
+      {
+        (int x, int y) origine = Etendue.FromByte(idxOrigine);
+        foreach ((int x, int y) direction in directions)
+        {
+          int xVoisin = origine.x + direction.x, yVoisin = origine.y + direction.y,
+              xDestination = xVoisin + direction.x, yDestination = yVoisin + direction.y;
+          if (Etendue.Contains(xVoisin, yVoisin) && Etendue.Contains(xDestination, yDestination))
+          {
+            byte idxVoisin = Etendue.FromXY(xVoisin, yVoisin),
+                idxDestination = Etendue.FromXY(xDestination, yDestination);
+            // Les trois cases doivent être présentes dans le plateau. 
+            // On ne parle pas des pierres ici.
+            if (PresenceCase[idxVoisin] && PresenceCase[idxDestination])
+            {
+              MouvementsPossibles.Add((idxOrigine, idxVoisin, idxDestination));
+            }
+          }
+        }
       }
     }
 
-    public void CalculeSymetries(CoordonneesStock coordonneesStock)
+    private void CalculSymetries()
     {
-      bool bCarre = coordonneesStock.xMax - coordonneesStock.xMin == coordonneesStock.yMax - coordonneesStock.yMin;
-      PointsSymetriques = new Dictionary<Coordonnee, List<Coordonnee>>();
-      NbSymetries = 0;
-      Dictionary<Coordonnee, Coordonnee> result = new Dictionary<Coordonnee, Coordonnee>();
-
-      foreach (Coordonnee item in this)
-      {
-        PointsSymetriques.Add(item, new List<Coordonnee>());
-        result.Add(item, null);
-      }
-
+      Symetries = new List<byte[]>();
+      bool bCarre = Etendue.Largeur == Etendue.Hauteur;
+      int xMin = 0, xMax = Etendue.Largeur - 1, yMin = 0, yMax = Etendue.Hauteur - 1;
+      int nbCases = NbCasesPlateau;
       foreach (enumSymetries symetrie in Enum.GetValues(typeof(enumSymetries)))
       {
         Matrice2x3 M = null;
         switch (symetrie)
         {
+          case enumSymetries.Id:
+            M = new Matrice2x3((1, 0, 0), (0, 1, 0));
+            break;
           case enumSymetries.rot90:
             if (bCarre)
             {
-              M = new Matrice2x3((0, -1, coordonneesStock.xMin + coordonneesStock.yMax), (1, 0, -coordonneesStock.xMin + coordonneesStock.yMin));
+              M = new Matrice2x3((0, -1, xMin + yMax), (1, 0, -xMin + yMin));
             }
             break;
           case enumSymetries.rot180:
-            M = new Matrice2x3((-1, 0, coordonneesStock.xMin + coordonneesStock.xMax), (0, -1, coordonneesStock.yMin + coordonneesStock.yMax));
+            M = new Matrice2x3((-1, 0, xMin + xMax), (0, -1, yMin + yMax));
             break;
           case enumSymetries.rot270:
             if (bCarre)
             {
-              M = new Matrice2x3((0, 1, coordonneesStock.xMin - coordonneesStock.yMin), (-1, 0, coordonneesStock.xMin + coordonneesStock.yMax));
+              M = new Matrice2x3((0, 1, xMin - yMin), (-1, 0, xMin + yMax));
             }
             break;
           case enumSymetries.hor:
-            M = new Matrice2x3((1, 0, 0), (0, -1, coordonneesStock.yMin + coordonneesStock.yMax));
+            M = new Matrice2x3((1, 0, 0), (0, -1, yMin + yMax));
             break;
           case enumSymetries.vert:
-            M = new Matrice2x3((-1, 0, coordonneesStock.xMin + coordonneesStock.xMax), (0, 1, 0));
+            M = new Matrice2x3((-1, 0, xMin + xMax), (0, 1, 0));
             break;
           case enumSymetries.premDiag:
             if (bCarre)
             {
-              M = new Matrice2x3((0, 1, coordonneesStock.xMin - coordonneesStock.yMin), (1, 0, -coordonneesStock.xMin + coordonneesStock.yMin));
+              M = new Matrice2x3((0, 1, xMin - yMin), (1, 0, -xMin + yMin));
             }
             break;
           case enumSymetries.secondDiag:
             if (bCarre)
             {
-              M = new Matrice2x3((0, -1, coordonneesStock.xMin + coordonneesStock.yMax), (-1, 0, coordonneesStock.xMin + coordonneesStock.yMax));
+              M = new Matrice2x3((0, -1, xMin + yMax), (-1, 0, xMin + yMax));
             }
             break;
         }
-        if (M != null && CalculeSymetries(M, result, coordonneesStock))
+        if (M != null)
         {
-          AjouteSymetrie(result);
+          byte[] indirection = new byte[Etendue.NbCasesRectangleEnglobant];
+          if (CalculeSymetries(M, indirection))
+          {
+            Symetries.Add(indirection);
+          }
         }
       }
-
     }
 
-    private bool CalculeSymetries(Matrice2x3 M, Dictionary<Coordonnee, Coordonnee> result, CoordonneesStock coordonneesStock)
+    // Pour chaque indice de case du plateau, calcule l'indice de l'image par la symétrie donnée
+    // Et si pour chaque case cette image est dans le plateau d'origine (si le plateau est globalement conservé)
+    // alors enregistre les images de chaque case du plateau d'origine
+    private bool CalculeSymetries(Matrice2x3 matrice, byte[] symetrie)
     {
       bool bOK = true;
-      foreach (Coordonnee item in this)
+      foreach (byte idxCasePlateau in Cases)
       {
-        int x = M.m[0, 0] * item.X + M.m[0, 1] * item.Y + M.m[0, 2];
-        int y = M.m[1, 0] * item.X + M.m[1, 1] * item.Y + M.m[1, 2];
-        if (IsCaseDuPlateau(x, y, coordonneesStock))
+        (int x, int y) coordonnees = Etendue.FromByte(idxCasePlateau);
+        int x = matrice.m[0, 0] * coordonnees.x + matrice.m[0, 1] * coordonnees.y + matrice.m[0, 2];
+        int y = matrice.m[1, 0] * coordonnees.x + matrice.m[1, 1] * coordonnees.y + matrice.m[1, 2];
+        byte idxNewCase = Etendue.FromXY(x, y);
+        if (PresenceCase[idxNewCase])
         {
-          result[item] = coordonneesStock.GetCoordonnee(x, y);
+          symetrie[idxCasePlateau] = idxNewCase;
         }
         else
         {
@@ -118,64 +160,19 @@ namespace LeSolitaireLogique
       return bOK;
     }
 
-    private bool IsCaseDuPlateau(int x, int y, CoordonneesStock coordonneesStock)
+    public void GenereSymetrie(SituationEtude situationEtude, int idxSymetrie)
     {
-      if (!coordonneesStock.Contains(x, y)) return false;
-      return this.Contains(coordonneesStock.GetCoordonnee(x, y));
-    }
-
-    private void AjouteSymetrie(Dictionary<Coordonnee, Coordonnee> result)
-    {
-      foreach (KeyValuePair<Coordonnee, Coordonnee> kvp in result)
+      Array.Clear(situationEtude.ImagePierres, 0, situationEtude.ImagePierres.Length);
+      byte[] symetrie = Symetries[idxSymetrie];
+      for (int idxCase = 0; idxCase < Etendue.NbCasesRectangleEnglobant; idxCase++)
       {
-        PointsSymetriques[kvp.Key].Add(kvp.Value);
-      }
-      ++NbSymetries;
-    }
-
-    internal IEnumerable<Situation> SituationsSymetriques(Situation situationNew)
-    {
-      for (int i = 0; i < NbSymetries; i++)
-      {
-        Situation situationSymetrique = new Situation();
-        foreach (Coordonnee coordonnee in situationNew)
+        if (situationEtude.Pierres[idxCase])
         {
-          situationSymetrique.Add(PointsSymetriques[coordonnee][i]);
-        }
-        yield return situationSymetrique;
-      }
-    }
-
-    public List<(Coordonnee A, Coordonnee B, Coordonnee C)> MouvementsPossibles;
-    //Les coordonnées ne sont pas encore générées, et celles ci-dessous pourraient mêmes ne pas appartenir au stock
-    private static readonly Coordonnee[] Directions = { new Coordonnee(1, 0), new Coordonnee(-1, 0), new Coordonnee(0, 1), new Coordonnee(0, -1) };
-    public void CalculeMouvementsPossibles(CoordonneesStock coordonneesStock)
-    {
-      MouvementsPossibles = new List<(Coordonnee A, Coordonnee B, Coordonnee C)>();
-      foreach (Coordonnee A in this)
-      {
-        foreach (Coordonnee offset in Directions)
-        {
-          int x, y;
-          x = A.X + offset.X; y = A.Y + offset.Y;
-          if (coordonneesStock.Contains(x, y))
-          {
-            Coordonnee B = coordonneesStock.GetCoordonnee(x, y);
-            if (Contains(B))
-            {
-              x = B.X + offset.X; y = B.Y + offset.Y;
-              if (coordonneesStock.Contains(x, y))
-              {
-                Coordonnee C = coordonneesStock.GetCoordonnee(x, y);
-                if (Contains(C))
-                {
-                  MouvementsPossibles.Add((A, B, C));
-                }
-              }
-            }
-          }
+          int idxImage = symetrie[idxCase];
+          situationEtude.ImagePierres[idxImage] = true;
         }
       }
     }
+
   }
 }

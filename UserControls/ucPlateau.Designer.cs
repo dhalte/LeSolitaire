@@ -44,9 +44,6 @@
       this.pbPlateau.TabIndex = 0;
       this.pbPlateau.TabStop = false;
       this.pbPlateau.Paint += new System.Windows.Forms.PaintEventHandler(this.pbPlateau_Paint);
-      this.pbPlateau.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pbPlateau_MouseDown);
-      this.pbPlateau.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pbPlateau_MouseMove);
-      this.pbPlateau.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pbPlateau_MouseUp);
       // 
       // ucBoutons
       // 

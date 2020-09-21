@@ -6,10 +6,15 @@ using System.Threading.Tasks;
 
 namespace LeSolitaireLogique
 {
-  public class Solution
+public enum enumSymetries
   {
-    public SituationRaw SituationInitialeRaw;
-    public Situation Situation;
-    public List<SolutionMouvement> Mouvements;
+    Id,
+    rot90,
+    rot180,
+    rot270,
+    hor,
+    vert,
+    premDiag,
+    secondDiag
   }
 }

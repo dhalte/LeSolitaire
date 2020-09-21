@@ -13,14 +13,13 @@ namespace UserControls
 {
   public partial class ucPlateau : UserControl
   {
-    private CoordonneesStock CoordonneesStock;
     private int NbCasesEnLargeur;
     private int NbCasesEnHauteur;
     private int EdgeCase;
     // PlateauJeu et SituationInitiales sont null avant d'être définis.
     private Plateau PlateauJeu;
-    private Situation SituationInitiale;
-    private Situation SituationActuelle;
+    private SituationEtude SituationInitiale;
+    private SituationEtude SituationActuelle;
     // Soit initialisé à Count=0 si on est en mode manuel, soit à la liste des mouvements de la solution à afficher.
     private List<Mvt> Mouvements;
     // IdxEtapeActuelle débute à -1, indication que l'on affiche la situation initiale.
@@ -43,13 +42,12 @@ namespace UserControls
 
     private void ResizePlateau()
     {
-      if (CoordonneesStock == null)
+      if (PlateauJeu == null)
       {
         return;
       }
-      PlateauInteraction = new PlateauInteraction();
-      NbCasesEnLargeur = CoordonneesStock.xMax - CoordonneesStock.xMin + 1;
-      NbCasesEnHauteur = CoordonneesStock.yMax - CoordonneesStock.yMin + 1;
+      NbCasesEnLargeur = PlateauJeu.Etendue.Largeur;
+      NbCasesEnHauteur = PlateauJeu.Etendue.Hauteur;
       if (NbCasesEnLargeur == 0 || NbCasesEnHauteur == 0)
       {
         return;
@@ -76,15 +74,15 @@ namespace UserControls
       // Dessin des cases du plateau
       Image pierre = Properties.Resources.Pierre;
       Image creux = Properties.Resources.Creux;
-      for (int x = CoordonneesStock.xMin; x <= CoordonneesStock.xMax; x++)
+      for (int y = 0; y < NbCasesEnHauteur; y++)
       {
-        for (int y = CoordonneesStock.yMin; y <= CoordonneesStock.yMax; y++)
+        for (int x = 0; x < NbCasesEnLargeur; x++)
         {
-          Coordonnee coordonnee = CoordonneesStock.GetCoordonnee(x, y);
-          if (PlateauJeu.Contains(coordonnee))
+          int idxCase = PlateauJeu.Etendue.FromXY(x, y);
+          if (PlateauJeu.Contains(x, y))
           {
-            Image img = SituationActuelle.Contains(coordonnee) ? pierre : creux;
-            Rectangle rc = new Rectangle((coordonnee.X - CoordonneesStock.xMin) * EdgeCase, (coordonnee.Y - CoordonneesStock.yMin) * EdgeCase, EdgeCase, EdgeCase);
+            Image img = SituationActuelle.Pierres[idxCase] ? pierre : creux;
+            Rectangle rc = new Rectangle(x * EdgeCase, y * EdgeCase, EdgeCase, EdgeCase);
             g.DrawImage(img, rc);
           }
         }
@@ -93,20 +91,21 @@ namespace UserControls
     }
     private void ReconstitueSituation()
     {
-      SituationActuelle = new Situation(SituationInitiale);
+      SituationActuelle = new SituationEtude(PlateauJeu);
       for (int idxEtape = 0; idxEtape <= IdxEtapeActuelle; idxEtape++)
       {
         Mvt mvt = Mouvements[idxEtape];
-        SituationActuelle.DeplacePierre(mvt, CoordonneesStock.Etendue);
+        SituationActuelle.EffectueMouvement((mvt.Depart, mvt.Saut, mvt.Arrivee));
       }
     }
-    public void InitJeu(CoordonneesStock coordonneesStock, Plateau plateau, Situation situationInitiale, List<Mvt> mouvements, bool bManuel)
+    public void InitJeu(Plateau plateau, Situation situationInitiale, List<Mvt> mouvements, bool bManuel)
     {
-      CoordonneesStock = coordonneesStock;
+
       PlateauJeu = plateau;
-      SituationInitiale = situationInitiale;
-      SituationActuelle = new Situation(situationInitiale);
-      PlateauInteraction = new PlateauInteraction();
+      SituationInitiale = new SituationEtude(plateau);
+      SituationInitiale.ChargeSituation(situationInitiale);
+      SituationActuelle = new SituationEtude(plateau);
+
       if (mouvements == null)
       {
         Mouvements = new List<Mvt>();
@@ -127,60 +126,27 @@ namespace UserControls
       {
         case ucBoutonFx.LeftLeft:
           IdxEtapeActuelle = -1;
-          ReconstitueSituation();
-          pbPlateau.Refresh();
           break;
         case ucBoutonFx.Left:
           if (IdxEtapeActuelle > -1)
           {
             IdxEtapeActuelle--;
-            ReconstitueSituation();
-            pbPlateau.Refresh();
           }
           break;
         case ucBoutonFx.Right:
           if (IdxEtapeActuelle < Mouvements.Count - 1)
           {
             IdxEtapeActuelle++;
-            ReconstitueSituation();
-            pbPlateau.Refresh();
           }
           break;
         case ucBoutonFx.RightRight:
           IdxEtapeActuelle = Mouvements.Count - 1;
-          ReconstitueSituation();
-          pbPlateau.Refresh();
           break;
         default:
           break;
       }
-    }
-
-    private PlateauInteraction PlateauInteraction;
-    private void pbPlateau_MouseDown(object sender, MouseEventArgs e)
-    {
-      int x = e.Location.X / EdgeCase;
-      int y = e.Location.Y / EdgeCase;
-      bool bCoordonneeOK = CoordonneesStock.Contains(x, y);
-      Coordonnee coordonnee = bCoordonneeOK ? CoordonneesStock.GetCoordonnee(x, y) : null;
-      bCoordonneeOK = bCoordonneeOK && PlateauJeu.Contains(coordonnee);
-      bool bPierre = bCoordonneeOK && SituationActuelle.Contains(coordonnee);
-      bool bVide = bCoordonneeOK && !bPierre;
-      if (bPierre)
-      {
-        PlateauInteraction.IsPierreSelectionnee = true;
-        PlateauInteraction.PierreSelectionnee = coordonnee; 
-      }
-    }
-
-    private void pbPlateau_MouseUp(object sender, MouseEventArgs e)
-    {
-
-    }
-
-    private void pbPlateau_MouseMove(object sender, MouseEventArgs e)
-    {
-
+      ReconstitueSituation();
+      pbPlateau.Refresh();
     }
 
   }

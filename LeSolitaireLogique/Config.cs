@@ -8,21 +8,22 @@ using System.Xml;
 
 namespace LeSolitaireLogique
 {
-  public class ParLesDeuxBoutsConfig
+  // Représente le contenu d'une fiche d'initialisation ou d'un fichier pilote
+  public class Config
   {
     public int Nd { get; private set; }
     public int Nf { get; private set; }
-    private long IdxReprise;
+    public long IdxReprise;
     // C'est cet objet qui contient l'étendue du plateau
-    public SituationRaw Plateau;
-    private List<Solution> Solutions;
-    public ParLesDeuxBoutsConfig(FileInfo file)
+    public SituationRaw PlateauRaw;
+    public List<Solution> Solutions;
+    public Config(FileInfo file)
     {
       XmlDocument xmlDocument = new XmlDocument();
       xmlDocument.Load(file.FullName);
       ChargeConfig(xmlDocument);
     }
-    public ParLesDeuxBoutsConfig(string contenu)
+    public Config(string contenu)
     {
       XmlDocument xmlDocument = new XmlDocument();
       xmlDocument.LoadXml(contenu);
@@ -37,7 +38,7 @@ namespace LeSolitaireLogique
       Nf = int.Parse(xParam.GetAttribute("nf"));
       XmlElement xPlateau = xRoot["plateau"];
       string plateau = xPlateau.InnerText;
-      Plateau = ChargePlateau(plateau);
+      PlateauRaw = ChargePlateauRaw(plateau);
       XmlElement xReprise = xRoot["reprise"];
       IdxReprise = xReprise == null ? 0 : long.Parse(xReprise.GetAttribute("idx"));
       Solutions = new List<Solution>();
@@ -45,33 +46,27 @@ namespace LeSolitaireLogique
       {
         Solutions.Add(DecodeSolution(xSolution));
       }
-
     }
 
     private Solution DecodeSolution(XmlElement xSolution)
     {
       XmlElement xSituation = xSolution["plateau"];
       Solution solution = new Solution();
-      solution.SituationInitiale = ChargePlateau(xSituation.InnerText);
+      solution.SituationInitialeRaw = ChargePlateauRaw(xSituation.InnerText);
       solution.Mouvements = new List<SolutionMouvement>();
       foreach (XmlElement xMouvement in xSolution.SelectNodes("mouvement"))
       {
-        int x = int.Parse(xMouvement.GetAttribute("x"));
-        int y = int.Parse(xMouvement.GetAttribute("y"));
-        // On s'affranchit du stock de coordonnées
-        Coordonnee pierre = new Coordonnee(x, y);
+        byte idxPierre = byte.Parse(xMouvement.GetAttribute("c"));
         enumDirection direction = Common.DecodeDirection(xMouvement.GetAttribute("dir"));
-        SolutionMouvement mouvement = new SolutionMouvement(pierre, direction);
+        SolutionMouvement mouvement = new SolutionMouvement(idxPierre, direction);
         solution.Mouvements.Add(mouvement);
       }
       return solution;
     }
 
-    private SituationRaw ChargePlateau(string description)
+    private SituationRaw ChargePlateauRaw(string description)
     {
-      SituationRaw plateau = Common.ChargeContenuStringSituation(description);
-      plateau.CentrePoints();
-      return plateau;
+      return Common.ChargeSituationRaw(description);
     }
 
     public XmlDocument SauveConfig()
@@ -86,7 +81,7 @@ namespace LeSolitaireLogique
       xParametres.SetAttribute("nf", Nf.ToString());
       XmlElement xPlateau = xmlDocument.CreateElement("plateau");
       xRoot.AppendChild(xPlateau);
-      xPlateau.InnerText = SauvePlateau(Plateau);
+      xPlateau.InnerText = SauvePlateauRaw(PlateauRaw);
       XmlElement xReprise = xmlDocument.CreateElement("reprise");
       xRoot.AppendChild(xReprise);
       xReprise.SetAttribute("idx", IdxReprise.ToString());
@@ -104,30 +99,30 @@ namespace LeSolitaireLogique
       xRoot.AppendChild(xSolution);
       XmlElement xPlateau = xDoc.CreateElement("plateau");
       xSolution.AppendChild(xPlateau);
-      xPlateau.InnerText = SauvePlateau(solution.SituationInitiale);
+      xPlateau.InnerText = SauvePlateauRaw(solution.SituationInitialeRaw);
       foreach (SolutionMouvement mouvement in solution.Mouvements)
       {
         XmlElement xMouvement = xDoc.CreateElement("mouvement");
         xSolution.AppendChild(xMouvement);
-        xMouvement.SetAttribute("x", mouvement.Pierre.X.ToString());
-        xMouvement.SetAttribute("y", mouvement.Pierre.Y.ToString());
+        xMouvement.SetAttribute("c", mouvement.IdxPierre.ToString());
         xMouvement.SetAttribute("dir", Common.EncodeDirection(mouvement.Direction));
       }
     }
 
-    private string SauvePlateau(SituationRaw plateau)
+    private string SauvePlateauRaw(SituationRaw plateauRaw)
     {
       StringBuilder sb = new StringBuilder();
       sb.AppendLine();
       // Les points du plateau sont réputés ordonnés par y croissant, et pour chaque y, par x croissant
       int idxCur = 0;
-      for (int y = plateau.Etendue.yMin; y <= plateau.Etendue.yMax; y++)
+      Etendue etendue = Common.CalculeEtendue(plateauRaw);
+      for (int y = 0; y < etendue.Hauteur; y++)
       {
-        for (int x = plateau.Etendue.xMin; x <= plateau.Etendue.xMax; x++)
+        for (int x = 0; x < etendue.Largeur; x++)
         {
-          if (idxCur < plateau.Count)
+          if (idxCur < plateauRaw.Count)
           {
-            (int x, int y, bool pierre) @case = plateau[idxCur];
+            (int x, int y, bool pierre) @case = plateauRaw[idxCur];
             if (@case.y == y && @case.x == x)
             {
               if (@case.pierre) sb.Append('x');
