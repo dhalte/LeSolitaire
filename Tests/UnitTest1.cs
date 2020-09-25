@@ -29,7 +29,7 @@ xxxxxxx
   xxx
   </plateau>
 </solitaire>";
-      Config parLesDeuxBoutsConfig = new Config(config);
+      Pilote parLesDeuxBoutsConfig = new Pilote(config);
       Plateau plateau = new Plateau(parLesDeuxBoutsConfig.PlateauRaw);
     }
 
@@ -50,7 +50,7 @@ ooooooo
   ooo
   </plateau>
 </solitaire>";
-      Config parLesDeuxBoutsConfig = new Config(config);
+      Pilote parLesDeuxBoutsConfig = new Pilote(config);
       Plateau plateau = new Plateau(parLesDeuxBoutsConfig.PlateauRaw);
       SituationRaw plateauRaw = parLesDeuxBoutsConfig.PlateauRaw;
       Situation situation = new Situation(plateau.Etendue, plateauRaw);
@@ -64,5 +64,36 @@ ooooooo
       Assert.IsTrue(b);
     }
 
+
+    public class A
+    {
+      public int a;
+      public override bool Equals(object obj)
+      {
+        return a == ((A)obj).a;
+      }
+      public override int GetHashCode()
+      {
+        return a;
+      }
+    }
+    public class B : A { }
+
+    [TestMethod]
+    public void TestCast()
+    {
+      HashSet<A> list = new HashSet<A>();
+      B B = new B { a = 1 };
+      list.Add(B);
+      B B1 = new B { a = 1 };
+      A A2 = null;
+      B B2 = null;
+      bool exist = list.TryGetValue(B1, out A2);
+      if (exist)
+      {
+        B2 = (B)A2;
+      }
+
+    }
   }
 }

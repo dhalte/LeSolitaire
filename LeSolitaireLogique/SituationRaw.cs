@@ -11,7 +11,24 @@ namespace LeSolitaireLogique
   // Les coordonnées minimales sont assurées être 0 par l'interpréteur de description
   public class SituationRaw : List<(int x, int y, bool pierre)>
   {
-
+    public bool ControleDescription(string descriptionSituation)
+    {
+      SituationRaw situationRaw = Common.ChargeSituationRaw(descriptionSituation);
+      if (Count != situationRaw.Count)
+      {
+        return false;
+      }
+      for (int idx = 0; idx < Count; idx++)
+      {
+        (int x, int y, bool pierre) casePlateau = this[idx];
+        (int x, int y, bool pierre) caseSituation = situationRaw[idx];
+        if (casePlateau.x != caseSituation.x || casePlateau.y != caseSituation.y || casePlateau.pierre != caseSituation.pierre)
+        {
+          return false;
+        }
+      }
+      return true;
+    }
     public int NbPierres => this.Count(c => c.pierre);
   }
 }

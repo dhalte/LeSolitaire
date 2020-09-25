@@ -50,7 +50,7 @@ namespace LeSolitaireLogique
       }
       if (situationRaw.Count == 0)
       {
-        throw new ApplicationException("Aucune pierre, aucune case n'ont été trouvées dans la description");
+        throw new ApplicationException("La description du plateau ne contient aucune pierre, aucune case");
       }
       if (xMin != 0 || yMin != 0)
       {
@@ -71,35 +71,5 @@ namespace LeSolitaireLogique
       return new Etendue(xMax + 1, yMax + 1);
     }
 
-    public static enumDirection DecodeDirection(string code)
-    {
-      if (string.IsNullOrEmpty(code) || code.Length != 1)
-        throw new ArgumentException($"Code de direction invalide : {code} ");
-
-      switch (char.ToLower(code[0]))
-      {
-        case 'n': return enumDirection.nord;
-        case 'e': return enumDirection.est;
-        case 's': return enumDirection.sud;
-        case 'o': return enumDirection.ouest;
-      }
-      throw new ArgumentException($"Code de direction invalide : {code} ");
-    }
-
-    internal static string EncodeDirection(enumDirection direction)
-    {
-      switch (direction)
-      {
-        case enumDirection.nord:
-          return "n";
-        case enumDirection.est:
-          return "e";
-        case enumDirection.sud:
-          return "s";
-        case enumDirection.ouest:
-          return "o";
-      }
-      throw new ArgumentException($"direction inconnue : {(int)direction} {direction}");
-    }
   }
 }

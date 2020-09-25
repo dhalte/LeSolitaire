@@ -174,5 +174,44 @@ namespace LeSolitaireLogique
       }
     }
 
+    // construction de la liste ordonnée des indices des cases du plateau
+    // qui ne sont pas occupées par une pierre.
+    // Sources : 
+    //    byte[] Cases   : liste ordonnée des indices des cases du plateau
+    //    byte[] pierres : liste ordonnée des indices des cases du plateau occupées par une pierre
+    //    pierres est sous-ensemble de Cases
+    // Résultat :
+    //    byte[] dual    : liste ordonnée des indices des cases du plateau NON occupées par une pierre
+    // Optimisation : on exploite le fait que les sources soient ordonnées pour éviter de rechercher
+    //  pour chaque case du plateau si elle est présente ou non dans l'ensemble de pierres.
+    internal byte[] SituationDualeRaw(byte[] pierres)
+    {
+      int idxInTblPierres = 0;
+      byte[] dual = new byte[NbCasesPlateau - pierres.Length];
+      int idxDual = 0;
+      foreach (byte idxCasePlateau in Cases)
+      {
+        if (idxInTblPierres < pierres.Length)
+        {
+          if (idxCasePlateau < pierres[idxInTblPierres])
+          {
+            dual[idxDual++] = idxCasePlateau;
+          }
+          else
+          {
+            // on a nécessairement : 
+            //   idxCasePlateau == pierres[idxInTblPierres]
+            // et si idxInTblPierres+1 < pierres.Length
+            //   idxCasePlateau < pierres[idxInTblPierres+1]
+            idxInTblPierres++;
+          }
+        }
+        else
+        {
+          dual[idxDual++] = idxCasePlateau;
+        }
+      }
+      return dual;
+    }
   }
 }

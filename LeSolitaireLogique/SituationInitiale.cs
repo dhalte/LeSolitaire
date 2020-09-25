@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace LeSolitaireLogique
 {
-  public class SituationInitiale
+  public class SituationInitiale : Situation
   {
     public bool Resolue;
-    public Situation Situation;
-    public SituationInitiale(Situation situation) 
-    { 
-      Situation = situation;
+
+    public SituationInitiale(Situation situation) : base(situation.Pierres)
+    {
     }
+
   }
 }

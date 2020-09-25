@@ -43,8 +43,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common.cs" />
+    <Compile Include="enumAccesData.cs" />
     <Compile Include="enumDirection.cs" />
     <Compile Include="enumFeedbackHint.cs" />
+    <Compile Include="enumOp.cs" />
     <Compile Include="enumState.cs" />
     <Compile Include="enumSymetries.cs" />
     <Compile Include="Etendue.cs" />
@@ -53,12 +55,14 @@
     <Compile Include="LogiqueConfiguration.cs" />
     <Compile Include="Matrice2x3.cs" />
     <Compile Include="Mvt.cs" />
-    <Compile Include="Config.cs" />
+    <Compile Include="Pilote.cs" />
     <Compile Include="Plateau.cs" />
+    <Compile Include="PreSolution.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScheduleInfo.cs" />
     <Compile Include="Situation.cs" />
     <Compile Include="SituationBase.cs" />
+    <Compile Include="SituationDepart.cs" />
     <Compile Include="SituationEtude.cs" />
     <Compile Include="SituationInitiale.cs" />
     <Compile Include="SituationRaw.cs" />

@@ -86,6 +86,15 @@ namespace LeSolitaireLogique
         Pierres[idxCase] = true;
       }
     }
+    public void ChargeSituation(byte[] pierres)
+    {
+      Array.Clear(Pierres, 0, Pierres.Length);
+      NbPierres = pierres.Length;
+      foreach (byte idxCase in pierres)
+      {
+        Pierres[idxCase] = true;
+      }
+    }
 
     internal bool MouvementPossible((int idxOrigine, int idxVoisin, int idxDestination) mvt)
     {

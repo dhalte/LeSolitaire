@@ -8,8 +8,8 @@ using System.Xml;
 
 namespace LeSolitaireLogique
 {
-  // Représente le contenu d'une fiche d'initialisation ou d'un fichier pilote
-  public class Config
+  // Représente le contenu d'un fichier pilote
+  public class Pilote
   {
     public int Nd { get; private set; }
     public int Nf { get; private set; }
@@ -17,13 +17,22 @@ namespace LeSolitaireLogique
     // C'est cet objet qui contient l'étendue du plateau
     public SituationRaw PlateauRaw;
     public List<Solution> Solutions;
-    public Config(FileInfo file)
+    public List<PreSolution> PreSolutions;
+    public Pilote()
+    {
+      Nd = Nf = 1;
+      PlateauRaw = new SituationRaw();
+      IdxReprise = 0;
+      Solutions = new List<Solution>();
+      PreSolutions = new List<PreSolution>();
+    }
+    public Pilote(FileInfo file)
     {
       XmlDocument xmlDocument = new XmlDocument();
       xmlDocument.Load(file.FullName);
       ChargeConfig(xmlDocument);
     }
-    public Config(string contenu)
+    public Pilote(string contenu)
     {
       XmlDocument xmlDocument = new XmlDocument();
       xmlDocument.LoadXml(contenu);
@@ -46,6 +55,11 @@ namespace LeSolitaireLogique
       {
         Solutions.Add(DecodeSolution(xSolution));
       }
+      PreSolutions = new List<PreSolution>();
+      foreach (XmlElement xPreSolution in xRoot.SelectNodes("presolution"))
+      {
+        PreSolutions.Add(DecodePreSolution(xPreSolution));
+      }
     }
 
     private Solution DecodeSolution(XmlElement xSolution)
@@ -56,12 +70,25 @@ namespace LeSolitaireLogique
       solution.Mouvements = new List<SolutionMouvement>();
       foreach (XmlElement xMouvement in xSolution.SelectNodes("mouvement"))
       {
-        byte idxPierre = byte.Parse(xMouvement.GetAttribute("c"));
-        enumDirection direction = Common.DecodeDirection(xMouvement.GetAttribute("dir"));
-        SolutionMouvement mouvement = new SolutionMouvement(idxPierre, direction);
+        byte idxDepart = byte.Parse(xMouvement.GetAttribute("d"));
+        byte idxSaut = byte.Parse(xMouvement.GetAttribute("s"));
+        SolutionMouvement mouvement = new SolutionMouvement(idxDepart, idxSaut);
         solution.Mouvements.Add(mouvement);
       }
       return solution;
+    }
+
+    private PreSolution DecodePreSolution(XmlElement xPreSolution)
+    {
+      PreSolution preSolution = new PreSolution();
+      preSolution.IdxSD = int.Parse(xPreSolution.GetAttribute("idxSD"));
+      preSolution.IdxSIlist = new List<int>();
+      foreach (XmlElement xIdxSI in xPreSolution.SelectNodes("initial"))
+      {
+        preSolution.IdxSIlist.Add(int.Parse(xIdxSI.GetAttribute("idxSI")));
+      }
+      preSolution.Mouvements = new List<SolutionMouvement>();
+      return preSolution;
     }
 
     private SituationRaw ChargePlateauRaw(string description)
@@ -89,6 +116,10 @@ namespace LeSolitaireLogique
       {
         SauveSolution(xRoot, solution);
       }
+      foreach (PreSolution preSolution in PreSolutions)
+      {
+        SauvePreSolution(xRoot, preSolution);
+      }
       return xmlDocument;
     }
 
@@ -104,8 +135,29 @@ namespace LeSolitaireLogique
       {
         XmlElement xMouvement = xDoc.CreateElement("mouvement");
         xSolution.AppendChild(xMouvement);
-        xMouvement.SetAttribute("c", mouvement.IdxPierre.ToString());
-        xMouvement.SetAttribute("dir", Common.EncodeDirection(mouvement.Direction));
+        xMouvement.SetAttribute("d", mouvement.IdxDdepart.ToString());
+        xMouvement.SetAttribute("s", mouvement.IdxSaut.ToString());
+      }
+    }
+
+    private void SauvePreSolution(XmlElement xRoot, PreSolution preSolution)
+    {
+      XmlDocument xDoc = xRoot.OwnerDocument;
+      XmlElement xPreSolution = xDoc.CreateElement("presolution");
+      xRoot.AppendChild(xPreSolution);
+      xPreSolution.SetAttribute("idxSD", preSolution.IdxSD.ToString());
+      foreach (int idxSI in preSolution.IdxSIlist)
+      {
+        XmlElement xInitial = xDoc.CreateElement("initial");
+        xPreSolution.AppendChild(xInitial);
+        xInitial.SetAttribute("idxSI", idxSI.ToString());
+      }
+      foreach (SolutionMouvement mouvement in preSolution.Mouvements)
+      {
+        XmlElement xMouvement = xDoc.CreateElement("mouvement");
+        xPreSolution.AppendChild(xMouvement);
+        xMouvement.SetAttribute("d", mouvement.IdxDdepart.ToString());
+        xMouvement.SetAttribute("s", mouvement.IdxSaut.ToString());
       }
     }
 
@@ -140,6 +192,37 @@ namespace LeSolitaireLogique
       //      sb.AppendLine();
 
       return sb.ToString();
+    }
+
+    internal void Initialise(string descriptionPlateauInitial)
+    {
+      PlateauRaw = Common.ChargeSituationRaw(descriptionPlateauInitial);
+      Nf = Nd = 1;
+      IdxReprise = 0;
+      Solutions.Clear();
+      PreSolutions.Clear();
+    }
+    internal void ChangeND(int nd)
+    {
+      Nd = nd;
+      PreSolutions.Clear();      
+    }
+
+    internal void ChangeNF(int nf)
+    {
+      Nf = nf;
+      PreSolutions.Clear();
+    }
+
+    internal void IncrementerND()
+    {
+      Nd++;
+      PreSolutions.Clear();
+    }
+    internal void IncrementerNF()
+    {
+      Nf++;
+      PreSolutions.Clear();
     }
   }
 }

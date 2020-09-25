@@ -9,7 +9,7 @@ namespace LeSolitaireLogique
 {
   public class SituationStock
   {
-    private HashSet<SituationBase >[] stocks;
+    private HashSet<SituationBase>[] stocks;
     public SituationStock(int count)
     {
       stocks = new HashSet<SituationBase>[count];

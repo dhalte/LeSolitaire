@@ -8,13 +8,13 @@ namespace LeSolitaireLogique
 {
   public class SolutionMouvement
   {
-    public readonly byte IdxPierre;
-    public readonly enumDirection Direction;
+    public readonly byte IdxDdepart;
+    public readonly byte IdxSaut;
 
-    public SolutionMouvement(byte idxPierre, enumDirection direction)
+    public SolutionMouvement(byte idxPierre, byte idxSaut)
     {
-      IdxPierre = idxPierre;
-      Direction = direction;
+      IdxDdepart = idxPierre;
+      IdxSaut = idxSaut;
     }
   }
 }
