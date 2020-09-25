@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LeSolitaire.Properties {
+namespace UserControls.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace LeSolitaire.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("LeSolitaire.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("UserControls.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -63,6 +63,16 @@ namespace LeSolitaire.Properties {
         /// <summary>
         ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Controles128x32 {
+            get {
+                object obj = ResourceManager.GetObject("Controles128x32", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Creux {
             get {
                 object obj = ResourceManager.GetObject("Creux", resourceCulture);
@@ -76,16 +86,6 @@ namespace LeSolitaire.Properties {
         internal static System.Drawing.Bitmap Effacer32x18 {
             get {
                 object obj = ResourceManager.GetObject("Effacer32x18", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap Fleche {
-            get {
-                object obj = ResourceManager.GetObject("Fleche", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

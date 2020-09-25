@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LeSolitaire
+namespace LeSolitaireLogique
 {
-  class Mvt
+  public class Mvt
   {
     public Mvt Parent;
-    public Coordonnee Depart;
-    public Coordonnee Saut;
-    public Coordonnee Arrivee;
+    public byte Depart;
+    public byte Saut;
+    public byte Arrivee;
   }
 }

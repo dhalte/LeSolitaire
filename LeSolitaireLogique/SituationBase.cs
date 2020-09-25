@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LeSolitaire
+namespace LeSolitaireLogique
 {
-  class Plateau : HashSet<Coordonnee>
+  public abstract class SituationBase
   {
-    public void AddCase(Coordonnee coordonnee) => this.Add(coordonnee);
   }
 }
