@@ -64,10 +64,10 @@ namespace LeSolitaireLogique
 
     private Solution DecodeSolution(XmlElement xSolution)
     {
-      XmlElement xSituation = xSolution["plateau"];
       Solution solution = new Solution();
+      solution.Complete = bool.Parse(xSolution.GetAttribute("complete"));
+      XmlElement xSituation = xSolution["plateau"];
       solution.SituationInitialeRaw = ChargePlateauRaw(xSituation.InnerText);
-      solution.Mouvements = new List<SolutionMouvement>();
       foreach (XmlElement xMouvement in xSolution.SelectNodes("mouvement"))
       {
         byte idxDepart = byte.Parse(xMouvement.GetAttribute("d"));
@@ -88,6 +88,12 @@ namespace LeSolitaireLogique
         preSolution.IdxSIlist.Add(int.Parse(xIdxSI.GetAttribute("idxSI")));
       }
       preSolution.Mouvements = new List<SolutionMouvement>();
+      foreach (XmlElement xMouvement in xPreSolution.SelectNodes("mouvement"))
+      {
+        byte idxPierre=byte.Parse(xMouvement.GetAttribute("d")), idxSaut = byte.Parse(xMouvement.GetAttribute("s"));
+        SolutionMouvement mouvement = new SolutionMouvement(idxPierre, idxSaut);
+        preSolution.Mouvements.Add(mouvement);
+      }
       return preSolution;
     }
 
@@ -128,6 +134,7 @@ namespace LeSolitaireLogique
       XmlDocument xDoc = xRoot.OwnerDocument;
       XmlElement xSolution = xDoc.CreateElement("solution");
       xRoot.AppendChild(xSolution);
+      xSolution.SetAttribute("complete", solution.Complete.ToString().ToLower());
       XmlElement xPlateau = xDoc.CreateElement("plateau");
       xSolution.AppendChild(xPlateau);
       xPlateau.InnerText = SauvePlateauRaw(solution.SituationInitialeRaw);
@@ -135,7 +142,7 @@ namespace LeSolitaireLogique
       {
         XmlElement xMouvement = xDoc.CreateElement("mouvement");
         xSolution.AppendChild(xMouvement);
-        xMouvement.SetAttribute("d", mouvement.IdxDdepart.ToString());
+        xMouvement.SetAttribute("d", mouvement.IdxDepart.ToString());
         xMouvement.SetAttribute("s", mouvement.IdxSaut.ToString());
       }
     }
@@ -156,7 +163,7 @@ namespace LeSolitaireLogique
       {
         XmlElement xMouvement = xDoc.CreateElement("mouvement");
         xPreSolution.AppendChild(xMouvement);
-        xMouvement.SetAttribute("d", mouvement.IdxDdepart.ToString());
+        xMouvement.SetAttribute("d", mouvement.IdxDepart.ToString());
         xMouvement.SetAttribute("s", mouvement.IdxSaut.ToString());
       }
     }

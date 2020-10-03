@@ -8,13 +8,17 @@ namespace LeSolitaireLogique
 {
   public class SolutionMouvement
   {
-    public readonly byte IdxDdepart;
+    public readonly byte IdxDepart;
     public readonly byte IdxSaut;
 
     public SolutionMouvement(byte idxPierre, byte idxSaut)
     {
-      IdxDdepart = idxPierre;
+      IdxDepart = idxPierre;
       IdxSaut = idxSaut;
+    }    
+    public byte IdxArrivee(Etendue etendue)
+    {
+      return etendue.IdxArrivee(IdxDepart, IdxSaut);
     }
   }
 }

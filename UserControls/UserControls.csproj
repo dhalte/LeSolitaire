@@ -69,11 +69,11 @@
     <Compile Include="ucListe.Designer.cs">
       <DependentUpon>ucListe.cs</DependentUpon>
     </Compile>
-    <Compile Include="ucParLesDeuxBouts.cs">
+    <Compile Include="ucSolitaire.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ucParLesDeuxBouts.Designer.cs">
-      <DependentUpon>ucParLesDeuxBouts.cs</DependentUpon>
+    <Compile Include="ucSolitaire.Designer.cs">
+      <DependentUpon>ucSolitaire.cs</DependentUpon>
     </Compile>
     <Compile Include="ucPlateau.cs">
       <SubType>UserControl</SubType>
@@ -96,8 +96,8 @@
     <EmbeddedResource Include="ucListe.resx">
       <DependentUpon>ucListe.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ucParLesDeuxBouts.resx">
-      <DependentUpon>ucParLesDeuxBouts.cs</DependentUpon>
+    <EmbeddedResource Include="ucSolitaire.resx">
+      <DependentUpon>ucSolitaire.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ucPlateau.resx">
       <DependentUpon>ucPlateau.cs</DependentUpon>

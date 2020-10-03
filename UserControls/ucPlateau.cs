@@ -13,18 +13,18 @@ namespace UserControls
 {
   public partial class ucPlateau : UserControl
   {
-    private int NbCasesEnLargeur;
-    private int NbCasesEnHauteur;
-    private int EdgeCase;
-    // PlateauJeu et SituationInitiales sont null avant d'être définis.
-    private Plateau PlateauJeu;
-    private SituationEtude SituationInitiale;
+    private Pilote Pilote;
+    private Plateau Plateau;
+    private Solution Solution;
     private SituationEtude SituationActuelle;
-    // Soit initialisé à Count=0 si on est en mode manuel, soit à la liste des mouvements de la solution à afficher.
-    private List<Mvt> Mouvements;
+
     // IdxEtapeActuelle débute à -1, indication que l'on affiche la situation initiale.
     private int IdxEtapeActuelle;
-    private bool ModeManuel;
+
+    int NbCasesEnLargeur;
+    int NbCasesEnHauteur;
+    int EdgeCase;
+
     public ucPlateau()
     {
       InitializeComponent();
@@ -42,17 +42,19 @@ namespace UserControls
 
     private void ResizePlateau()
     {
-      if (PlateauJeu == null)
+      if (Pilote == null)
       {
         return;
       }
-      NbCasesEnLargeur = PlateauJeu.Etendue.Largeur;
-      NbCasesEnHauteur = PlateauJeu.Etendue.Hauteur;
+
+      NbCasesEnLargeur = Plateau.Etendue.Largeur;
+      NbCasesEnHauteur = Plateau.Etendue.Hauteur;
       if (NbCasesEnLargeur == 0 || NbCasesEnHauteur == 0)
       {
         return;
       }
       int largeurCase = Width / NbCasesEnLargeur;
+      System.Diagnostics.Debug.Print($"Height {Height} ucBoutons.Top {ucBoutons.Top} ucBoutons.Enabled {ucBoutons.Enabled}");
       int hauteurCase = Height / NbCasesEnHauteur;
       // cases carrées
       EdgeCase = largeurCase < hauteurCase ? largeurCase : hauteurCase;
@@ -67,19 +69,20 @@ namespace UserControls
     {
       Graphics g = e.Graphics;
       g.FillRectangle(new SolidBrush(pbPlateau.BackColor), pbPlateau.ClientRectangle);
-      if (PlateauJeu == null || SituationInitiale == null)
+      if (Solution == null)
       {
         return;
       }
       // Dessin des cases du plateau
       Image pierre = Properties.Resources.Pierre;
       Image creux = Properties.Resources.Creux;
+
       for (int y = 0; y < NbCasesEnHauteur; y++)
       {
         for (int x = 0; x < NbCasesEnLargeur; x++)
         {
-          int idxCase = PlateauJeu.Etendue.FromXY(x, y);
-          if (PlateauJeu.Contains(x, y))
+          int idxCase = Plateau.Etendue.FromXY(x, y);
+          if (Plateau.Contains(x, y))
           {
             Image img = SituationActuelle.Pierres[idxCase] ? pierre : creux;
             Rectangle rc = new Rectangle(x * EdgeCase, y * EdgeCase, EdgeCase, EdgeCase);
@@ -91,33 +94,12 @@ namespace UserControls
     }
     private void ReconstitueSituation()
     {
-      SituationActuelle = new SituationEtude(PlateauJeu);
+      SituationActuelle.ChargeSituation(Solution.SituationInitiale);
       for (int idxEtape = 0; idxEtape <= IdxEtapeActuelle; idxEtape++)
       {
-        Mvt mvt = Mouvements[idxEtape];
-        SituationActuelle.EffectueMouvement((mvt.Depart, mvt.Saut, mvt.Arrivee));
+        SolutionMouvement mvt = Solution.Mouvements[idxEtape];
+        SituationActuelle.EffectueMouvement((mvt.IdxDepart, mvt.IdxSaut, mvt.IdxArrivee(Plateau.Etendue)));
       }
-    }
-    public void InitJeu(Plateau plateau, Situation situationInitiale, List<Mvt> mouvements, bool bManuel)
-    {
-
-      PlateauJeu = plateau;
-      SituationInitiale = new SituationEtude(plateau);
-      SituationInitiale.ChargeSituation(situationInitiale);
-      SituationActuelle = new SituationEtude(plateau);
-
-      if (mouvements == null)
-      {
-        Mouvements = new List<Mvt>();
-      }
-      else
-      {
-        Mouvements = new List<Mvt>(mouvements);
-      }
-      IdxEtapeActuelle = -1;
-      ModeManuel = bManuel;
-      ResizePlateau();
-      pbPlateau.Refresh();
     }
 
     private void ucBoutons_OnClic(object sender, ucBoutonEventArgs e)
@@ -134,20 +116,50 @@ namespace UserControls
           }
           break;
         case ucBoutonFx.Right:
-          if (IdxEtapeActuelle < Mouvements.Count - 1)
+          if (IdxEtapeActuelle < Solution.Mouvements.Count - 1)
           {
             IdxEtapeActuelle++;
           }
           break;
         case ucBoutonFx.RightRight:
-          IdxEtapeActuelle = Mouvements.Count - 1;
+          IdxEtapeActuelle = Solution.Mouvements.Count - 1;
           break;
         default:
           break;
       }
       ReconstitueSituation();
+      ucBoutons.Set(true, -1, Solution.Mouvements.Count - 1, IdxEtapeActuelle);
       pbPlateau.Refresh();
     }
 
+    internal void Init(Pilote pilote, int idxSolutionChoisie)
+    {
+      Pilote = pilote;
+      Plateau = new Plateau(pilote.PlateauRaw);
+      if (idxSolutionChoisie < 0)
+      {
+        Solution = null;
+        Refresh();
+      }
+      else
+      {
+        ChangeSolution(idxSolutionChoisie);
+      }
+    }
+
+    public void ChangeSolution(int idxSolutionChoisie)
+    {
+      Solution = Pilote.Solutions[idxSolutionChoisie];
+      if (Solution.SituationInitiale == null)
+      {
+        Solution.SituationInitiale = new Situation(Plateau.Etendue, Solution.SituationInitialeRaw);
+      }
+      IdxEtapeActuelle = -1;
+      SituationActuelle = new SituationEtude(Plateau);
+      SituationActuelle.ChargeSituation(Solution.SituationInitiale);
+      ucBoutons.Set(true, -1, Solution.Mouvements.Count - 1, IdxEtapeActuelle);
+      ResizePlateau();
+      Refresh();
+    }
   }
 }

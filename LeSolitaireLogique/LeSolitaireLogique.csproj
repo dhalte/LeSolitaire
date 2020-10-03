@@ -66,9 +66,13 @@
     <Compile Include="SituationEtude.cs" />
     <Compile Include="SituationInitiale.cs" />
     <Compile Include="SituationRaw.cs" />
+    <Compile Include="SituationsEtude.cs" />
+    <Compile Include="SituationsInitiales.cs" />
     <Compile Include="SituationStock.cs" />
     <Compile Include="Solution.cs" />
     <Compile Include="SolutionMouvement.cs" />
+    <Compile Include="SuiviMemoire.cs" />
+    <Compile Include="Surveillance.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

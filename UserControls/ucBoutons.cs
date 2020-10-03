@@ -41,6 +41,8 @@ namespace UserControls
         lbl.Text = string.Empty;
       }
     }
+
+    [Browsable(true)]
     public event EventHandler<ucBoutonEventArgs> OnClic;
 
     private void BoutonOnClic(object sender, EventArgs e)

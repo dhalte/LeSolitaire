@@ -45,5 +45,11 @@ namespace LeSolitaireLogique
     public (int x, int y) Centrer(int x, int y) => (x - xCentre, y - yCentre);
     public (int x, int y) Centrer((int x, int y) c) => (c.x - xCentre, c.y - yCentre);
 
+    public byte IdxArrivee(byte idxDepart, byte idxSaut)
+    {
+      (int x, int y) depart = FromByte(idxDepart);
+      (int x, int y) saut = FromByte(idxSaut);
+      return FromXY(2 * saut.x - depart.x, 2 * saut.y - depart.y);
+    }
   }
 }

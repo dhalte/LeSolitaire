@@ -17,7 +17,7 @@ namespace LeSolitaireLogique
     public SituationDepart(byte[] situationRaw, byte[] situationsNewAssociees) : base(situationRaw)
     {
       IdxSituationsInitiales = new byte[situationsNewAssociees.Length];
-      Array.Copy(IdxSituationsInitiales, situationsNewAssociees, situationsNewAssociees.Length);
+      Array.Copy(situationsNewAssociees, IdxSituationsInitiales, situationsNewAssociees.Length);
     }
   }
 }
