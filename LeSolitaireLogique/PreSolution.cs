@@ -8,8 +8,8 @@ namespace LeSolitaireLogique
 {
   public class PreSolution
   {
-    public int IdxSD;
-    public List<int> IdxSIlist;
-    public List<SolutionMouvement> Mouvements;
+    public long IdxSD;
+    public List<int> IdxSIlist=new List<int>();
+    public List<SolutionMouvement> Mouvements=new List<SolutionMouvement>();
   }
 }

@@ -30,24 +30,27 @@ namespace LeSolitaire
     /// </summary>
     private void InitializeComponent()
     {
-      this.ucParLesDeuxBouts = new UserControls.ucParLesDeuxBouts();
+      this.ucSolitaire = new UserControls.ucSolitaire();
       this.SuspendLayout();
       // 
-      // ucParLesDeuxBouts
+      // ucSolitaire
       // 
-      this.ucParLesDeuxBouts.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.ucParLesDeuxBouts.Location = new System.Drawing.Point(0, 0);
-      this.ucParLesDeuxBouts.Name = "ucParLesDeuxBouts";
-      this.ucParLesDeuxBouts.Size = new System.Drawing.Size(836, 448);
-      this.ucParLesDeuxBouts.TabIndex = 5;
+      this.ucSolitaire.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+      this.ucSolitaire.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.ucSolitaire.Location = new System.Drawing.Point(0, 0);
+      this.ucSolitaire.Margin = new System.Windows.Forms.Padding(11);
+      this.ucSolitaire.Name = "ucSolitaire";
+      this.ucSolitaire.Size = new System.Drawing.Size(861, 574);
+      this.ucSolitaire.TabIndex = 5;
       // 
-      // Form1
+      // frmMain
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-      this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(836, 448);
-      this.Controls.Add(this.ucParLesDeuxBouts);
-      this.Name = "Form1";
+      this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+      this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+      this.ClientSize = new System.Drawing.Size(861, 574);
+      this.Controls.Add(this.ucSolitaire);
+      this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+      this.Name = "frmMain";
       this.Text = "Solitaire";
       this.Load += new System.EventHandler(this.Form1_Load);
       this.ResumeLayout(false);
@@ -56,7 +59,7 @@ namespace LeSolitaire
 
     #endregion
 
-    private ucParLesDeuxBouts ucParLesDeuxBouts;
+    private ucSolitaire ucSolitaire;
   }
 }
 

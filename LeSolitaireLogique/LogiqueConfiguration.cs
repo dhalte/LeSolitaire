@@ -213,7 +213,7 @@ namespace LeSolitaireLogique
 
     internal void SauvePilote()
     {
-      Pilote.SauveConfig().Save(FichierPilote.FullName);
+      Pilote?.SauveConfig().Save(FichierPilote.FullName);
     }
 
     public FileStream OpenData(enumAccesData accesData)

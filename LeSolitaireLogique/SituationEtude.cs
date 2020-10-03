@@ -71,7 +71,7 @@ namespace LeSolitaireLogique
       return hashcode;
     }
 
-    internal Situation NewSituation()
+    public Situation NewSituation()
     {
       Situation situation = new Situation(Pierres);
       return situation;
@@ -96,7 +96,7 @@ namespace LeSolitaireLogique
       }
     }
 
-    internal bool MouvementPossible((int idxOrigine, int idxVoisin, int idxDestination) mvt)
+    public bool MouvementPossible((int idxOrigine, int idxVoisin, int idxDestination) mvt)
     {
       return Pierres[mvt.idxOrigine] && Pierres[mvt.idxVoisin] && !Pierres[mvt.idxDestination];
     }
@@ -108,12 +108,12 @@ namespace LeSolitaireLogique
       Pierres[mvt.idxDestination] = true;
       NbPierres--;
     }
-    internal bool MouvementInversePossible((int idxOrigine, int idxVoisin, int idxDestination) mvt)
+    public bool MouvementInversePossible((int idxOrigine, int idxVoisin, int idxDestination) mvt)
     {
       return !Pierres[mvt.idxOrigine] && !Pierres[mvt.idxVoisin] && Pierres[mvt.idxDestination];
     }
 
-    internal void EffectueMouvementInverse((int idxOrigine, int idxVoisin, int idxDestination) mvt)
+    public void EffectueMouvementInverse((int idxOrigine, int idxVoisin, int idxDestination) mvt)
     {
       Pierres[mvt.idxOrigine] = true;
       Pierres[mvt.idxVoisin] = true;

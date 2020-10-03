@@ -12,50 +12,31 @@ using LeSolitaireLogique;
 using System.Diagnostics;
 using System.Net.Configuration;
 using System.Net.Http.Headers;
+using System.Windows.Forms.VisualStyles;
 
 namespace UserControls
 {
-  public partial class ucParLesDeuxBouts : UserControl, IFeedback
+  public partial class ucSolitaire : UserControl, IFeedback
   {
-    public ucParLesDeuxBouts()
+    public ucSolitaire()
     {
       InitializeComponent();
     }
 
     private Logique Logique;
+    private Surveillance Surveillance;
+
     private void ucParLesDeuxBouts_Load(object sender, EventArgs e)
     {
       ucFichier.Init("danielHalte/LeSolitaire/ParLesDeuxBouts");
+      Surveillance = new Surveillance();
+      Surveillance.LowMemoryEvent += Surveillance_LowMemoryEvent;
+      Surveillance.Start();
     }
 
-    private void btRechercher_Click(object sender, EventArgs e)
+    private void Surveillance_LowMemoryEvent(object sender, EventArgs e)
     {
-      tbSuivi.Clear();
-      string fichierSituationInitiale = ucFichier.Value;
-      FileInfo fileInfoSituationInitiale = null;
-      try
-      {
-        fileInfoSituationInitiale = new FileInfo(fichierSituationInitiale);
-        if (!fileInfoSituationInitiale.Exists)
-        {
-          throw new ApplicationException("Le fichier spécifié n'existe pas");
-        }
-      }
-      catch (Exception ex)
-      {
-        Feedback(enumFeedbackHint.error, ex.Message);
-        return;
-      }
-      ucFichier.Save();
-      SwitchDisplay(true);
-      Logique = new Logique(this);
-      Logique.LanceRecherche(fileInfoSituationInitiale);
-    }
-
-    private void btSuspendre_Click(object sender, EventArgs e)
-    {
-      Feedback(enumFeedbackHint.info, "Demande postée");
-      Logique?.StoppeBgTask();
+      if (Logique != null) Logique.LowMemory = true;
     }
 
     private void SwitchDisplay(bool running)
@@ -148,10 +129,12 @@ namespace UserControls
     private void RegleActions(enumOp enumOp)
     {
       actionInitialiser.Enabled = enumOp == enumOp.Initialiser;
-      actionConsoliderSolutions.Enabled = (enumOp & enumOp.ConsoliderSolutions) == enumOp.ConsoliderSolutions;
+      actionReglerND.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
+      actionReglerNF.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
+      actionArrangerED.Enabled = (enumOp & enumOp.ArrangerND) == enumOp.ArrangerND;
       actionRechercher.Enabled = (enumOp & enumOp.Rechercher) == enumOp.Rechercher;
-      actionReglerND.Enabled = actionReglerNF.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
       actionSuspendre.Enabled = enumOp == enumOp.Suspendre;
+      actionConsoliderSolutions.Enabled = (enumOp & enumOp.ConsoliderSolutions) == enumOp.ConsoliderSolutions;
       tbND.Enabled = tbNF.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
     }
 
@@ -235,6 +218,84 @@ namespace UserControls
       pnlActions.Hide();
       Feedback(enumFeedbackHint.info, "Demande postée");
       Logique?.StoppeBgTask();
+    }
+
+    private void actionRechercher_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      pnlActions.Hide();
+      Logique.LanceRecherche();
+    }
+
+    private void actionConsoliderSolutions_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      pnlActions.Hide();
+      Logique.LanceConsolider();
+    }
+
+    private void actionArrangerED_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      pnlActions.Hide();
+      Logique.LanceArrangerED();
+    }
+
+    private void tabMain_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      if (tabMain.SelectedTab == tabAffichageSolutions)
+      {
+
+        try
+        {
+          if (!InitPanneauSolutions())
+          {
+            Feedback(enumFeedbackHint.error, "Spécifier une fiche de jeu valide");
+            tabMain.SelectedTab = tabSuivi;
+            return;
+          }
+        }
+        catch (Exception ex)
+        {
+          Feedback(enumFeedbackHint.error, $"Spécifier une fiche de jeu valide : {ex.Message}");
+        }
+      }
+    }
+
+    private bool InitPanneauSolutions()
+    {
+      string filename = ucFichier.Value;
+      if (string.IsNullOrEmpty(filename) || !File.Exists(filename))
+      {
+        return false;
+      }
+      string directoryname = Path.Combine(Path.GetDirectoryName(filename), Path.GetFileNameWithoutExtension(filename));
+      if (!Directory.Exists(directoryname))
+      {
+        return false;
+      }
+      string filenamepilote = Path.Combine(directoryname, Path.GetFileNameWithoutExtension(filename) + ".xml");
+      if (!File.Exists(filenamepilote))
+      {
+        return false;
+      }
+      Pilote pilote = new Pilote(new FileInfo(filenamepilote));
+      cbListeSolutions.SelectedIndexChanged -= cbListeSolutions_SelectedIndexChanged;
+      cbListeSolutions.Items.Clear();
+      for (int idxSolution = 0; idxSolution < pilote.Solutions.Count; idxSolution++)
+      {
+        // On inclut les solutions incomplètes
+        string incomplete = pilote.Solutions[idxSolution].Complete ? "" : " (incomplete)";
+        string item = $"solution {idxSolution + 1}{incomplete}";
+        cbListeSolutions.Items.Add(item);
+      }
+      int idxSolutionChoisie = cbListeSolutions.Items.Count > 0 ? 0 : -1;
+      cbListeSolutions.SelectedIndex = idxSolutionChoisie;
+      cbListeSolutions.SelectedIndexChanged += cbListeSolutions_SelectedIndexChanged;      
+      ucAffichageSolution.Init(pilote, idxSolutionChoisie);
+      return true;
+    }
+
+    private void cbListeSolutions_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      ucAffichageSolution.ChangeSolution(cbListeSolutions.SelectedIndex);
     }
   }
 }

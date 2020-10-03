@@ -15,6 +15,7 @@ namespace LeSolitaireLogique
     ConsoliderSolutions=2,
     Rechercher=4,
     ReglerNDNF=8,
-    Suspendre=16,
+    ArrangerND=16,
+    Suspendre=32,
   }
 }
