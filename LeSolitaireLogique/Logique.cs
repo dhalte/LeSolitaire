@@ -455,6 +455,11 @@ namespace LeSolitaireLogique
       BgTask.Start();
     }
 
+    // Ce handle est utilisé pour rechercher directement dans le fichier EF.dat trié 
+    // une situation particulière afin de déterminer si elle est finale (et donc mènera à une situation gagnante).
+    private FileStream EFdatRecherche;
+    // Objet permettant la comparaison de deux byte[] de même taille
+    CompareSituations CompareSituations;
     void Recherche()
     {
       try
@@ -488,66 +493,71 @@ namespace LeSolitaireLogique
           else
           {
             EDdat.Seek(offsetFichierED, SeekOrigin.Begin);
-            while (State == enumState.running && !bToutesSIresolues)
+            using (FileStream EFdat = Config.OpenData(enumAccesData.EFdat))
             {
-              if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
+              // Pour éviter de passer en paramètre à la procédure récursive bool Recherche(situation)
+              EFdatRecherche = EFdat;
+              CompareSituations = new CompareSituations();
+              while (State == enumState.running && !bToutesSIresolues)
               {
-                break;
-              }
-              if (!RechercheNouvelleSIpossible(situationsInitialesAssociees))
-              {
-                // Cette SD adresse des SI déjà résolues, inutile de la tester.
-                Config.Pilote.IdxReprise++;
-                continue;
-              }
-              byte[] situationDepartRaw = Plateau.SituationDualeRaw(dualSituationDepartRaw);
-              Situation situationDepart = new Situation(situationDepartRaw);
-              if (Recherche(situationDepart))
-              {
-                // On a relié SD à une SF. On enregistre la pré-solution.
-                // RQ : les tests précédents assurent qu'au moins une SI non encore résolue est concernée.
-                PreSolution preSolution = new PreSolution();
-                preSolution.IdxSD = Config.Pilote.IdxReprise;
-                int nbSIresolues = 0;
-                for (int idxSituationInitiale = 0; idxSituationInitiale < nbSituationsInitiales; idxSituationInitiale++)
+                if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
                 {
-                  if (situationsInitialesAssociees[idxSituationInitiale] != 0)
+                  break;
+                }
+                if (!RechercheNouvelleSIpossible(situationsInitialesAssociees))
+                {
+                  // Cette SD adresse des SI déjà résolues, inutile de la tester.
+                  Config.Pilote.IdxReprise++;
+                  continue;
+                }
+                byte[] situationDepartRaw = Plateau.SituationDualeRaw(dualSituationDepartRaw);
+                Situation situationDepart = new Situation(situationDepartRaw);
+                if (Recherche(situationDepart))
+                {
+                  // On a relié SD à une SF. On enregistre la pré-solution.
+                  // RQ : les tests précédents assurent qu'au moins une SI non encore résolue est concernée.
+                  PreSolution preSolution = new PreSolution();
+                  preSolution.IdxSD = Config.Pilote.IdxReprise;
+                  int nbSIresolues = 0;
+                  for (int idxSituationInitiale = 0; idxSituationInitiale < nbSituationsInitiales; idxSituationInitiale++)
                   {
-                    if (!EI[idxSituationInitiale].Resolue)
+                    if (situationsInitialesAssociees[idxSituationInitiale] != 0)
                     {
-                      preSolution.IdxSIlist.Add(idxSituationInitiale);
-                      EI[idxSituationInitiale].Resolue = true;
-                      nbSIresolues++;
+                      if (!EI[idxSituationInitiale].Resolue)
+                      {
+                        preSolution.IdxSIlist.Add(idxSituationInitiale);
+                        EI[idxSituationInitiale].Resolue = true;
+                        nbSIresolues++;
+                      }
                     }
                   }
+                  for (int idxMvt = Config.TailleSituationsND; idxMvt > Config.TailleSituationsNF; idxMvt--)
+                  {
+                    (int idxDepart, int idxSaut, int idxArrivee) mvt = Mouvements[idxMvt];
+                    SolutionMouvement solutionMouvement = new SolutionMouvement((byte)mvt.idxDepart, (byte)mvt.idxSaut);
+                    preSolution.Mouvements.Add(solutionMouvement);
+                  }
+                  Config.Pilote.PreSolutions.Add(preSolution);
+                  Config.SauvePilote();
+                  Parent?.Feedback(enumFeedbackHint.info, $"Pré-solution trouvée pour {nbSIresolues} nouvelle(s) SI");
+                  bToutesSIresolues = RechercheSiToutesSituationsInitialesResolues();
                 }
-                for (int idxMvt = Config.TailleSituationsND; idxMvt > Config.TailleSituationsNF; idxMvt--)
-                {
-                  (int idxDepart, int idxSaut, int idxArrivee) mvt = Mouvements[idxMvt];
-                  SolutionMouvement solutionMouvement = new SolutionMouvement((byte)mvt.idxDepart, (byte)mvt.idxSaut);
-                  preSolution.Mouvements.Add(solutionMouvement);
-                }
-                Config.Pilote.PreSolutions.Add(preSolution);
-                Config.SauvePilote();
-                Parent?.Feedback(enumFeedbackHint.info, $"Pré-solution trouvée pour {nbSIresolues} nouvelle(s) SI");
-                bToutesSIresolues = RechercheSiToutesSituationsInitialesResolues();
-              }
 
-              if (State == enumState.running)
-              {
-                Config.Pilote.IdxReprise++;
-              }
-              if (LowMemory)
-              {
-                LibereMemoire();
-                LowMemory = false;
-              }
-              if (ScheduleInfo.DelivreInfo())
-              {
-                Parent?.Feedback(enumFeedbackHint.info, $"Recherche {100f * Config.Pilote.IdxReprise / NbSD} %");
+                if (State == enumState.running)
+                {
+                  Config.Pilote.IdxReprise++;
+                }
+                if (LowMemory)
+                {
+                  LibereMemoire();
+                  LowMemory = false;
+                }
+                if (ScheduleInfo.DelivreInfo())
+                {
+                  Parent?.Feedback(enumFeedbackHint.info, $"Recherche {100f * Config.Pilote.IdxReprise / NbSD} %");
+                }
               }
             }
-
           }
         }
         if (bToutesSIresolues)
@@ -610,7 +620,7 @@ namespace LeSolitaireLogique
       Mouvements = new (int idxOrigine, int idxSaut, int idxDestination)[Plateau.NbCasesPlateau];
       CalculeSituationsInitiales();
       MarqueSituationsInitialesResolues(true);
-      RechercheChargeEF();
+      //RechercheChargeEF();
       return true;
     }
 
@@ -809,13 +819,12 @@ namespace LeSolitaireLogique
         if (situationEtude.MouvementPossible(mvt))
         {
           situationEtude.EffectueMouvement(mvt);
-          // Le stock concernant les SF est initialisé avec les SF "gagnantes" de EF.dat
-          // il ne doit pas être modifié ici.
-          if (!SituationEtudieeExisteDeja(situationEtude))
+          if (situationEtude.NbPierres > Config.TailleSituationsNF)
           {
-            if (situationEtude.NbPierres > Config.TailleSituationsNF)
+            // Cas général, on n'est pas arrivé à NF
+            if (!SituationEtudieeExisteDeja(situationEtude))
             {
-              // Cas général, la situation est nouvelle, on n'est pas arrivé à NF
+              // Cas général, on n'est pas arrivé à NF et la situation est nouvelle
               Mouvements[situation.NbPierres] = mvt;
               Situation situationNew = situationEtude.NewSituation();
               SituationStock.Add(situationNew);
@@ -827,12 +836,13 @@ namespace LeSolitaireLogique
           }
           else
           {
-            if (situationEtude.NbPierres == Config.TailleSituationsNF)
+            // On a atteint la taille des situations de EF.dat
+            // On va recherche directement dans le fichier si elle est présente, et donc mène à une situation gagnante
+            if (SituationEFatteinte(situationEtude))
             {
               // On vient de trouver une situation NF, on a trouvé une solution
               Parent?.Feedback(enumFeedbackHint.info, $"Situation EF trouvée");
               Mouvements[situation.NbPierres] = mvt;
-              Situation situationNew = situationEtude.NewSituation();
               return true;
             }
           }
@@ -841,6 +851,71 @@ namespace LeSolitaireLogique
           {
             return false;
           }
+        }
+      }
+      return false;
+    }
+
+    // situationEtude contient dans bool[Etendue.NbCasesRectangleEnglobant] Pierres
+    // une situation sur laquelle on a effectué un mouvement qui a amené NbPierres à Config.TailleSituationsNF
+    // On va transformer bool[] Pierres en un byte[Config.TailleSituationsNF] idxPierres,
+    // puis on génère toutes les situations par symétrie dans idxPierresSymetrie[Plateau.NbSymetries][Config.TailleSituationsNF]
+    // Tous ces tableaux sont triés. On définit un ordre strict entre eux pour choisir le "plus petit".
+    // C'est cette version, si on a atteint une situation finale, qui est dans EF.dat
+    // On la cherche par dichotomie dans EF.dat
+    private bool SituationEFatteinte(SituationEtude situationEtude)
+    {
+      int nbPierres = Config.TailleSituationsNF;
+      byte[][] idxPierresSymétrie = new byte[Plateau.NbSymetries][];
+      for (int idxSymetrie = 0; idxSymetrie < Plateau.NbSymetries; idxSymetrie++)
+      {
+        idxPierresSymétrie[idxSymetrie] = new byte[nbPierres];
+      }
+      byte[] idxPierres = idxPierresSymétrie[0];
+      int idxPierre = 0;
+      for (int idxCase = 0; idxCase < Plateau.Etendue.NbCasesRectangleEnglobant; idxCase++)
+      {
+        if (situationEtude.Pierres[idxCase])
+        {
+          idxPierres[idxPierre++] = (byte)idxCase;
+        }
+      }
+      Plateau.GenereSymetries(idxPierresSymétrie);
+      int idxSituationMinimale = 0;
+      for (int idxSymetrie = 1; idxSymetrie < Plateau.NbSymetries; idxSymetrie++)
+      {
+        int n = CompareSituations.Compare(idxPierresSymétrie[idxSituationMinimale], idxPierresSymétrie[idxSymetrie]);
+        if (n > 0)
+        {
+          idxSituationMinimale = idxSymetrie;
+        }
+      }
+      idxPierres = idxPierresSymétrie[idxSituationMinimale];
+      byte[] buffer = new byte[nbPierres];
+      // Recherche dichotomique de idxPierres dans EF.dat
+      int idxMin = 0, idxMax = (int)(EFdatRecherche.Length / nbPierres);
+      int idxProbe;
+      for (; ; )
+      {
+        idxProbe = (idxMin + idxMax) / 2;
+        EFdatRecherche.Seek(idxProbe * nbPierres, SeekOrigin.Begin);
+        EFdatRecherche.Read(buffer, 0, nbPierres);
+        int nCmp = CompareSituations.Compare(idxPierres, buffer);
+        if (nCmp == 0)
+        {
+          return true;
+        }
+        if (nCmp < 0)
+        {
+          idxMax = idxProbe - 1;
+        }
+        else
+        {
+          idxMin = idxProbe + 1;
+        }
+        if (idxMin > idxMax)
+        {
+          break;
         }
       }
       return false;
@@ -902,7 +977,7 @@ namespace LeSolitaireLogique
             if (!solution.Complete)
             {
               // On reconstruit la situation SF à partir de la SI et des mouvements
-              SituationRaw situationRaw  = solution.SituationInitialeRaw;
+              SituationRaw situationRaw = solution.SituationInitialeRaw;
               Situation situation = new Situation(Plateau.Etendue, situationRaw);
               foreach (SolutionMouvement solutionMouvement in solution.Mouvements)
               {

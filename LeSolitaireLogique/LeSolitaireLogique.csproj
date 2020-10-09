@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common.cs" />
+    <Compile Include="CompareSituations.cs" />
     <Compile Include="enumAccesData.cs" />
     <Compile Include="enumDirection.cs" />
     <Compile Include="enumFeedbackHint.cs" />
@@ -72,7 +73,8 @@
     <Compile Include="Solution.cs" />
     <Compile Include="SolutionMouvement.cs" />
     <Compile Include="SuiviMemoire.cs" />
-    <Compile Include="Surveillance.cs" />
+    <Compile Include="SurveillanceMemoire.cs" />
+    <Compile Include="Tests.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

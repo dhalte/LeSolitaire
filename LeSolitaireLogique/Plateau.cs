@@ -160,6 +160,29 @@ namespace LeSolitaireLogique
       return bOK;
     }
 
+    // buffers contient NbSymetries byte arrays.
+    // Tous ont même taille.
+    // Le premier contient les indices des cases du plateau contenant une pierre.
+    // Cette méthode renseigne les autres éléments avec les images des cases par chacune des symétries
+    // RQ : la symétrie d'indice 0 est l'identité
+    internal void GenereSymetries(byte[][] buffers)
+    {
+      byte[] origine = buffers[0];
+      int NbPierres = origine.Length;
+      for (int idxSymetrie = 1; idxSymetrie < NbSymetries; idxSymetrie++)
+      {
+        byte[] copie = buffers[idxSymetrie];
+        for (int idxIdxPierre = 0; idxIdxPierre < NbPierres; idxIdxPierre++)
+        {
+          byte idxPierre = origine[idxIdxPierre];
+          byte idxImage = Symetries[idxSymetrie][idxPierre];
+          copie[idxIdxPierre] = idxImage;
+        }
+        // Les listes doivent être triées pour permettre les comparaisons
+        Array.Sort(copie);
+      }
+    }
+
     public void GenereSymetrie(SituationEtude situationEtude, int idxSymetrie)
     {
       Array.Clear(situationEtude.ImagePierres, 0, situationEtude.ImagePierres.Length);
@@ -212,6 +235,26 @@ namespace LeSolitaireLogique
         }
       }
       return dual;
+    }
+
+    internal string Dump(byte[] idxPierres)
+    {
+      StringBuilder sb = new StringBuilder();
+      for (int y = 0; y < Etendue.Hauteur; y++)
+      {
+        for (int x = 0; x < Etendue.Largeur; x++)
+        {
+          char c = ' ';
+          byte idxCase = Etendue.FromXY(x, y);
+          if (PresenceCase[idxCase])
+          {
+            c = Array.IndexOf(idxPierres, idxCase) >= 0 ? 'x' : 'o';
+          }
+          sb.Append(c);
+        }
+        sb.Append('\n');
+      }
+      return sb.ToString();
     }
   }
 }

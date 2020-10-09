@@ -242,15 +242,44 @@ xxxxxxx
     }
 
     // Evaluation des collisions dans la table EF.dat
-    // Une collision se produit lorsque deux situations différentes ont même hashcode.
-    // On parcourt donc les situations à 14 pierres de EF.dat et on décompte le nombre
-    // de situations réparties selon leur clé de hashage.
+    // Voir LeSolitaireLogique.Tests.EvaluePertinenceHashage()
+    // J'ai essayé d'exécuter le test ici.
     // Le problème est que le test s'exécute dans un environnement qui provoque des OutOfMemory exceptions
     // Même en ajoutant un App.config avec
     //    <runtime>     <gcAllowVeryLargeObjects enabled = "true" />   </ runtime >
     // cela n'a rien arrangé.
-    // Alors j'ai fait exécuter le test au démarrage ( Program.Main() ) et j'ai obtenu un résultat surprenant :
-    // Il y a exactement autant de keys que de values. Donc si j'en crois ce résultat, il n'y a aucune collision.
-       
+    // Alors j'ai fait exécuter le test au démarrage ( Program.Main() ).
+
+    [TestMethod]
+    public void TestUINT()
+    {
+      uint a = (uint)int.MaxValue;
+      long b = a;
+      Debug.Print($"a={a}, {a:x}, b={b}, {b:x}");
+      a = uint.MaxValue;
+      b = a;
+      Debug.Print($"a={a}, {a:x}, b={b}, {b:x}");
+    }
+
+    [TestMethod]
+    public void TestSortedSet()
+    {
+      SortedSet<int> ss = new SortedSet<int>();
+      Random random = new Random();
+      for (int i = 0; i < 100_000; i++)
+      {
+        int n = random.Next(0, 5_000_000);
+        if (!ss.Contains(n))
+        {
+          ss.Add(n);
+        }
+      }
+      int p = int.MinValue;
+      foreach (int n in ss)
+      {
+        Assert.IsTrue(p < n);
+        p = n;
+      }
+    }
   }
 }
