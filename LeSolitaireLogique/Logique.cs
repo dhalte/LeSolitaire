@@ -544,7 +544,7 @@ namespace LeSolitaireLogique
               }
               if (ScheduleInfo.DelivreInfo())
               {
-                Parent?.Feedback(enumFeedbackHint.info, $"Recherche {100f * Config.Pilote.IdxReprise / NbSD} %");
+                Parent?.Feedback(enumFeedbackHint.info, $"Recherche {DateTime.Now:yyyy-MM-dd HH:mm:ss} {Config.Pilote.IdxReprise} {100f * Config.Pilote.IdxReprise / NbSD} %");
               }
             }
 
@@ -570,10 +570,10 @@ namespace LeSolitaireLogique
 
     private void LibereMemoire()
     {
-      Parent.Feedback(enumFeedbackHint.info, $"{DateTime.Now:HH:mm:ss.fff} >LibereMemoire Memory used before collection:{GC.GetTotalMemory(false)}");
+      // Parent.Feedback(enumFeedbackHint.info, $"{DateTime.Now:HH:mm:ss.fff} >LibereMemoire Memory used before collection:{GC.GetTotalMemory(false)}");
       SituationStock.LibereMemoire(Config.TailleSituationsNF + 1, Config.TailleSituationsND);
       GC.Collect();
-      Parent.Feedback(enumFeedbackHint.info, $"{DateTime.Now:HH:mm:ss.fff} >LibereMemoire Memory used after full collection:{GC.GetTotalMemory(true)}");
+      // Parent.Feedback(enumFeedbackHint.info, $"{DateTime.Now:HH:mm:ss.fff} >LibereMemoire Memory used after full collection:{GC.GetTotalMemory(true)}");
     }
 
     // Teste si toutes les SI de EI sont marquées comme résolues

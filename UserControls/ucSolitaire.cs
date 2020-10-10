@@ -24,12 +24,12 @@ namespace UserControls
     }
 
     private Logique Logique;
-    private Surveillance Surveillance;
+    private SurveillanceMemoire Surveillance;
 
     private void ucParLesDeuxBouts_Load(object sender, EventArgs e)
     {
       ucFichier.Init("danielHalte/LeSolitaire/ParLesDeuxBouts");
-      Surveillance = new Surveillance();
+      Surveillance = new SurveillanceMemoire();
       Surveillance.LowMemoryEvent += Surveillance_LowMemoryEvent;
       Surveillance.Start();
     }
