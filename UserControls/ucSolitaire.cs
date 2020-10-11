@@ -24,12 +24,12 @@ namespace UserControls
     }
 
     private Logique Logique;
-    private Surveillance Surveillance;
+    private SurveillanceMemoire Surveillance;
 
     private void ucParLesDeuxBouts_Load(object sender, EventArgs e)
     {
       ucFichier.Init("danielHalte/LeSolitaire/ParLesDeuxBouts");
-      Surveillance = new Surveillance();
+      Surveillance = new SurveillanceMemoire();
       Surveillance.LowMemoryEvent += Surveillance_LowMemoryEvent;
       Surveillance.Start();
     }
@@ -52,21 +52,30 @@ namespace UserControls
         Invoke(new FeedbackDelegate(Feedback), hint, msg);
         return;
       }
+      string head;
       switch (hint)
       {
+        case enumFeedbackHint.trace:
+          head = string.Empty;
+          break;
+        case enumFeedbackHint.info:
+          head = $"{DateTime.Now:HH:mm:ss} {hint} ";
+          break;
         case enumFeedbackHint.error:
           tabMain.SelectedTab = tabSuivi;
+          head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           break;
         case enumFeedbackHint.endOfJob:
+          head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           tabMain.SelectedTab = tabSuivi;
           SwitchDisplay(false);
           break;
-        case enumFeedbackHint.trace:
-        case enumFeedbackHint.info:
         default:
+          tabMain.SelectedTab = tabSuivi;
+          head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           break;
       }
-      msg = $"{DateTime.Now:HH:mm:ss} {hint} {msg}{Environment.NewLine}";
+      msg = $"{head}{msg}{Environment.NewLine}";
       tbSuivi.AppendText(msg);
     }
 
