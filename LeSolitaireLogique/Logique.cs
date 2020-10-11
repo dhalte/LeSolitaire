@@ -487,7 +487,10 @@ namespace LeSolitaireLogique
           }
           else
           {
+            Stopwatch swStats = Stopwatch.StartNew();
+            long idxOld = Config.Pilote.IdxReprise;
             EDdat.Seek(offsetFichierED, SeekOrigin.Begin);
+            Parent?.Feedback(enumFeedbackHint.trace, "tps % idx");
             while (State == enumState.running && !bToutesSIresolues)
             {
               if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
@@ -544,7 +547,12 @@ namespace LeSolitaireLogique
               }
               if (ScheduleInfo.DelivreInfo())
               {
-                Parent?.Feedback(enumFeedbackHint.info, $"Recherche {DateTime.Now:yyyy-MM-dd HH:mm:ss} {Config.Pilote.IdxReprise} {100f * Config.Pilote.IdxReprise / NbSD} %");
+                // Durée en fraction de journée, conformément à Excel
+                double duree = swStats.Elapsed.TotalSeconds / 3600.0 / 24.0;
+                long idxNew = Config.Pilote.IdxReprise, idxDelta = idxNew - idxOld;
+                Parent?.Feedback(enumFeedbackHint.trace, $"{duree} {100f * idxDelta / NbSD} {idxDelta}");
+                swStats.Restart();
+                idxOld = idxNew;
               }
             }
 
@@ -902,7 +910,7 @@ namespace LeSolitaireLogique
             if (!solution.Complete)
             {
               // On reconstruit la situation SF à partir de la SI et des mouvements
-              SituationRaw situationRaw  = solution.SituationInitialeRaw;
+              SituationRaw situationRaw = solution.SituationInitialeRaw;
               Situation situation = new Situation(Plateau.Etendue, situationRaw);
               foreach (SolutionMouvement solutionMouvement in solution.Mouvements)
               {

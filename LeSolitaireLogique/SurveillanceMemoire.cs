@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace LeSolitaireLogique
 {
-  public class SurveillanceMemoire
+  public class SurveillanceMemoire 
   {
     enum MemoryResourceNotificationType : int
     {
