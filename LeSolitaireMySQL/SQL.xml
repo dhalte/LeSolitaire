@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<SQL>
+  <sql name="showAllSchemas">
+    SELECT schema_name
+    FROM information_schema.schemata
+    Where schema_name like 'LeSolitaire%'
+  </sql>
+  <!-- ne supporte pas les @parametres, passe le nom en minuscules, backquotes `xx` et semi-column ';' optionels -->
+  <sql name="createDB">
+    create schema if not exists `{0}`;
+    use `{0}`;
+  </sql>
+  <sql name="verifieEFexists">
+    show tables like 'ef'
+  </sql>
+  <sql name="sizeofEF.pierres">
+    show columns from ef like 'pierres'
+  </sql>
+  <sql name="createEFtmp">
+    drop table if exists eftmp;
+    CREATE TABLE `eftmp` (
+    `pierres` BINARY({0}) NOT NULL,
+    `sg` TINYINT UNSIGNED NOT NULL,
+    PRIMARY KEY (`pierres`))
+    ENGINE = MyISAM;
+  </sql>
+  <sql name="renameEFtmp">
+    drop table if exists ef;
+    rename table eftmp to ef;
+  </sql>
+  <sql name="insertEFtmp">
+    insert into eftmp (pierres, sg) values (@pierres, @sg)
+  </sql>
+  <sql name="ReadAllEF">
+    select `pierres`, `sg` from EF
+  </sql>
+  <sql name="ReadOneSituationFromEFtmp">
+    select  `sg` from EFtmp where `pierres`=@pierres
+  </sql>
+  <sql name="UpdateEFtmp">
+    update EFtmp set `sg`=@sg where `pierres` = @pierres
+  </sql>
+  <sql name="InsertEFtmp">
+    insert into EFtmp (`pierres`, `sg`) values (@pierres, @sg)
+  </sql>
+  <sql name="SFgroupbySG">
+    select sg, count(*) from ef group by sg
+  </sql>
+</SQL>

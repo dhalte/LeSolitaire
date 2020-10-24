@@ -12,15 +12,22 @@ namespace LeSolitaireLogique
   {
     public Etendue Etendue;
     // La situation à l'étude.
+    // Initialisée avec une situation donnée,
+    // puis modifiée en effectuant un mouvement,
+    // puis étudiée (à l'aide de ImagePierres) suivant ses symétries
+    // puis restaurée en effectuant le mouvement inverse, avant de passer au mouvement suivant
     public bool[] Pierres;
     // la situation déduite par symétrie de la précédente.
     public bool[] ImagePierres;
+    // la situation minimale parmi toutes les symétries de Pierres
+    public bool[] ImagePierresMinimale;
     public int NbPierres { get; private set; }
     public SituationEtude(Plateau plateau)
     {
-      Etendue = plateau.Etendue;      
+      Etendue = plateau.Etendue;
       Pierres = new bool[Etendue.NbCasesRectangleEnglobant];
       ImagePierres = new bool[Etendue.NbCasesRectangleEnglobant];
+      ImagePierresMinimale = new bool[Etendue.NbCasesRectangleEnglobant];
     }
     public void ChargeSituationRaw(SituationRaw situationRaw)
     {
@@ -76,12 +83,16 @@ namespace LeSolitaireLogique
       Situation situation = new Situation(Pierres);
       return situation;
     }
-
+    public SituationInitiale NewSituationImage()
+    {
+      SituationInitiale situation = new SituationInitiale(ImagePierres);
+      return situation;
+    }
     public void ChargeSituation(Situation situation)
     {
       Array.Clear(Pierres, 0, Pierres.Length);
       NbPierres = situation.NbPierres;
-      foreach (byte  idxCase in situation.Pierres)
+      foreach (byte idxCase in situation.Pierres)
       {
         Pierres[idxCase] = true;
       }
@@ -153,6 +164,25 @@ namespace LeSolitaireLogique
         sb.AppendLine();
       }
       return sb.ToString();
+    }
+
+    // A partir de bool[] Pierres, on génère les symétries dans bool[] ImagePierres
+    // et on conserve la situation minimale dans bool[] ImagePierresMinimale
+    internal void CalculeSituationMinimale(Plateau plateau)
+    {
+      // Initialisation de bool[] ImagePierres qui contiendra au final la symétrie de poids minimal 
+      Array.Copy(Pierres, ImagePierres, Pierres.Length);
+      // idxSymetrie==0 correspond à l'identité
+      for (int idxSymetrie = 1; idxSymetrie < plateau.NbSymetries; idxSymetrie++)
+      {
+        // transpose bool[] Pierres dans bool[] ImagePierresMinimale selon la symétrie idxSymetrie
+        plateau.GenereSymetrieMinimale(this, idxSymetrie);
+        if (Common.Compare(ImagePierresMinimale, ImagePierres) > 0)
+        {
+          // Sauvegarde dans bool[] ImagePierres la version actuelle, de poids inférieur
+          Array.Copy(ImagePierresMinimale, ImagePierres, Pierres.Length);
+        }
+      }
     }
   }
 }

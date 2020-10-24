@@ -173,6 +173,19 @@ namespace LeSolitaireLogique
         }
       }
     }
+    public void GenereSymetrieMinimale(SituationEtude situationEtude, int idxSymetrie)
+    {
+      Array.Clear(situationEtude.ImagePierresMinimale, 0, situationEtude.ImagePierresMinimale.Length);
+      byte[] symetrie = Symetries[idxSymetrie];
+      for (int idxCase = 0; idxCase < Etendue.NbCasesRectangleEnglobant; idxCase++)
+      {
+        if (situationEtude.Pierres[idxCase])
+        {
+          int idxImage = symetrie[idxCase];
+          situationEtude.ImagePierresMinimale[idxImage] = true;
+        }
+      }
+    }
 
     // construction de la liste ordonnée des indices des cases du plateau
     // qui ne sont pas occupées par une pierre.

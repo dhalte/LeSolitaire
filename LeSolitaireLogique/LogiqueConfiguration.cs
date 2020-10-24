@@ -72,17 +72,6 @@ namespace LeSolitaireLogique
         return enumOp;
       }
 
-      // Controle de l'existence des fichiers de données
-      if (!File.Exists(Path.Combine(RacineData.FullName, "ED.dat")))
-      {
-        parent?.Feedback(enumFeedbackHint.error, "Il manque le fichier ED.dat.");
-        return enumOp;
-      }
-      if (!File.Exists(Path.Combine(RacineData.FullName, "EF.dat")))
-      {
-        parent?.Feedback(enumFeedbackHint.error, "Il manque le fichier EF.dat.");
-        return enumOp;
-      }
       int nbCases = Pilote.PlateauRaw.Count;
       int nbPierres = Pilote.PlateauRaw.NbPierres;
       if (nbCases == nbPierres) nbPierres--;
@@ -126,7 +115,7 @@ namespace LeSolitaireLogique
       try
       {
         bool bInitPilote = false;
-        // Existence de la fiche de jeu
+        // Existence de la fiche de jeu (description du plateau)
         if (string.IsNullOrEmpty(filenameFicheDeJeu))
         {
           parent?.Feedback(enumFeedbackHint.error, "Veuillez spécifier le chemin et le nom de la fiche de jeu");
@@ -138,6 +127,7 @@ namespace LeSolitaireLogique
           return false;
         }
         FicheDeJeu = new FileInfo(filenameFicheDeJeu);
+        
         // Controle du répertoire de données
         string filename = Path.GetFileNameWithoutExtension(FicheDeJeu.Name);
         string directoryName = Path.Combine(FicheDeJeu.DirectoryName, filename);
@@ -154,12 +144,14 @@ namespace LeSolitaireLogique
             return false;
           }
         }
+        
         // Controle de l'existence du pilote
         FichierPilote = new FileInfo(Path.Combine(RacineData.FullName, filename + ".xml"));
         if (!FichierPilote.Exists)
         {
           bInitPilote = true;
         }
+        
         // Chargement du contenu du pilote
         if (!bInitPilote)
         {
@@ -172,7 +164,7 @@ namespace LeSolitaireLogique
             parent?.Feedback(enumFeedbackHint.error, $"Fichier pilote erroné : {ex.Message}, reconstruction d'un fichier pilote initial");
             bInitPilote = true;
           }
-        }
+        }        
         string descriptionPlateauInitial = File.ReadAllText(filenameFicheDeJeu);
         if (!bInitPilote)
         {
@@ -184,21 +176,11 @@ namespace LeSolitaireLogique
             bInitPilote = true;
           }
         }
-        FileInfo FichierED = new FileInfo(Path.Combine(RacineData.FullName, "ED.dat"));
-        FileInfo FichierEF = new FileInfo(Path.Combine(RacineData.FullName, "EF.dat"));
         if (bInitPilote)
         {
           Pilote = new Pilote();
           Pilote.Initialise(descriptionPlateauInitial);
           SauvePilote();
-          if (FichierED.Exists)
-          {
-            FichierED.Delete();
-          }
-          if (FichierEF.Exists)
-          {
-            FichierEF.Delete();
-          }
         }
 
       }
