@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LeSolitaireMySQL;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
@@ -27,15 +28,14 @@ namespace LeSolitaireLogique
     public LogiqueConfiguration Config;
     // Le plateau de jeu
     private Plateau Plateau;
-    // Tableau d buffers permettant la manipulation d'une situation
-    // On gère un tel tableau car on fait une recherche en profondeur récursive
+    // Tableau de buffers permettant la manipulation d'une situation
+    // On gère un tel tableau car on fait une recherche en profondeur récursive de taille connue
+    // et on ne veut pas être continuellement en train d'allouer des buffers sur la stack.
     private SituationsEtude SituationsEtude;
     // Suivi des situations déjà rencontrées
     public SituationStock SituationStock;
-    // Liste des situations initiales, et leur suivi (résolues ou non)
-    private SituationsInitiales EI;
     // Liste des situations gagnantes (utile uniquement pour construire EF.dat)
-    private List<Situation> EG;
+    private List<SituationInitiale> EG;
     // Petit utilitaire permettant d'émettre des infos régulières, de + en + espacées
     private ScheduleInfo ScheduleInfo = new ScheduleInfo();
     // Pour la statistique délivrée par ScheduleInfo
@@ -59,22 +59,16 @@ namespace LeSolitaireLogique
       if (EnumOp != enumOp.Initialiser)
       {
         Plateau = new Plateau(Config.Pilote.PlateauRaw);
-        CalculeSituationsInitiales();
-        // Vérification de la taille des fichiers ED.dat et EF.dat
-        // Suppression si tailles incorrectes
-        if (!Config.VerifieTailleEDEF(Parent, EI.Count))
-        {
-          EnumOp = enumOp.Initialiser;
-        }
       }
       if (EnumOp != enumOp.Initialiser)
       {
-        if (Config.Pilote.PreSolutions.Count + Config.Pilote.Solutions.Count < EI.Count)
+        CalculeSituationsGagnantes();
+        if (Config.Pilote.PreSolutions.Count + Config.Pilote.Solutions.Count < EG.Count)
         {
           EnumOp |= enumOp.Rechercher;
           if (Config.Pilote.PreSolutions.Count == 0)
           {
-            EnumOp |= enumOp.ReglerNDNF | enumOp.ArrangerND;
+            EnumOp |= enumOp.ReglerNF;
           }
           if (Config.Pilote.PreSolutions.Count > 0 || Config.Pilote.Solutions.Count(s => !s.Complete) > 0)
           {
@@ -133,18 +127,8 @@ namespace LeSolitaireLogique
           Plateau = new Plateau(Config.Pilote.PlateauRaw);
           SituationStock = new SituationStock(Plateau.NbCasesPlateau);
           SituationsEtude = new SituationsEtude(Plateau);
-          CalculeSituationsInitiales();
           CalculeSituationsGagnantes();
-
-          if (!Config.Exist(enumAccesData.EDdat))
-          {
-            InitialiserED();
-          }
-          if (!Config.Exist(enumAccesData.EFdat))
-          {
-            InitialiserEF();
-          }
-
+          InitialiserEF();
           Config.SauvePilote();
         }
       }
@@ -156,187 +140,33 @@ namespace LeSolitaireLogique
       Parent?.Feedback(enumFeedbackHint.endOfJob, "Fin du job");
     }
 
-    private void InitialiserED()
-    {
-      HashSet<SituationBase> SDnew = new HashSet<SituationBase>();
-      SituationEtude situationEtude = new SituationEtude(Plateau);
-      for (int idxSI = 0; idxSI < EI.Count; idxSI++)
-      {
-        SituationInitiale situationInitiale = EI[idxSI];
-        situationEtude.ChargeSituation(situationInitiale);
-        foreach (var mvt in Plateau.MouvementsPossibles)
-        {
-          if (situationEtude.MouvementPossible(mvt))
-          {
-            situationEtude.EffectueMouvement(mvt);
-            SituationDepart situationDepart = TryGetSituation(situationEtude, SDnew) as SituationDepart;
-            if (situationDepart == null)
-            {
-              Situation situationNew = situationEtude.NewSituation();
-              situationDepart = new SituationDepart(situationNew.Pierres, EI.Count);
-              SDnew.Add(situationDepart);
-            }
-            situationDepart.IdxSituationsInitiales[idxSI] = 0xFF;
-            situationEtude.EffectueMouvementInverse(mvt);
-          }
-        }
-      }
-      FileStream fileStream = Config.OpenData(enumAccesData.EDtmp);
-      foreach (SituationDepart situationDepart1 in SDnew)
-      {
-        byte[] situationDuale = Plateau.SituationDualeRaw(situationDepart1.Pierres);
-        fileStream.Write(situationDuale, 0, situationDuale.Length);
-        fileStream.Write(situationDepart1.IdxSituationsInitiales, 0, EI.Count);
-      }
-      fileStream.Close();
-      Config.ReplaceData(enumAccesData.EDdat);
-      Config.Pilote.ChangeND(1);
-      Config.SauvePilote();
-    }
-
     private void InitialiserEF()
     {
-      HashSet<SituationBase> SFnew = new HashSet<SituationBase>();
-      for (int idxSG = 0; idxSG < EG.Count; idxSG++)
+      using (MyContext myContext = new MyContext())
       {
-        Situation situationFinale = EG[idxSG];
-        SituationEtude situationEtude = SituationsEtude[situationFinale.NbPierres];
-        situationEtude.ChargeSituation(situationFinale);
-        foreach (var mvt in Plateau.MouvementsPossibles)
+        int nfInDB = myContext.VerifieEF();
+        if (nfInDB > 0 && nfInDB != Config.Pilote.Nf)
         {
-          if (situationEtude.MouvementInversePossible(mvt))
-          {
-            situationEtude.EffectueMouvementInverse(mvt);
-            Situation situationFinaleNew = TryGetSituation(situationEtude, SFnew) as Situation;
-            if (situationFinaleNew == null)
-            {
-              situationFinaleNew = situationEtude.NewSituation();
-              SFnew.Add(situationFinaleNew);
-            }
-            situationEtude.EffectueMouvement(mvt);
-          }
-        }
-      }
-      FileStream fileStream = Config.OpenData(enumAccesData.EFtmp);
-      foreach (Situation situationFinale1 in SFnew)
-      {
-        fileStream.Write(situationFinale1.Pierres, 0, situationFinale1.NbPierres);
-      }
-      fileStream.Close();
-      Config.ReplaceData(enumAccesData.EFdat);
-      Config.Pilote.ChangeNF(1);
-      Config.SauvePilote();
-    }
+          Parent?.Feedback(enumFeedbackHint.error, $"Incohérence entre NF du pilote et NF dans la DB");
+          nfInDB = -1;
 
-    // Lance la constrution du fichier ED.dat pour une valeur donnée du paramètre ND
-    public void LanceReglerND(int nd)
-    {
-      if (State != enumState.stopped)
-      {
-        Parent?.Feedback(enumFeedbackHint.error, "processus en cours");
-        return;
-      }
-      Parent?.Feedback(enumFeedbackHint.info, $"Début réglage de ND à la valeur {nd}");
-      State = enumState.running;
-      BgTask = Task.Run(() => ReglerND(nd));
-    }
-
-    private void ReglerND(int nd)
-    {
-      try
-      {
-        if (nd < Config.Pilote.Nd)
-        {
-          Parent?.Feedback(enumFeedbackHint.info, $"ND décroit, on doit réinitialiser ND à 1");
-          InitialiserED();
         }
-        ScheduleInfo.Start();
-        while (nd > Config.Pilote.Nd && State == enumState.running)
+        if (nfInDB < 0)
         {
-          Parent?.Feedback(enumFeedbackHint.info, $"incrémentation de ND de {Config.Pilote.Nd} à {Config.Pilote.Nd + 1}");
-          if (!IncrementerND())
+          myContext.CreateEFtmp(1);
+          byte idxSG = 1;
+          foreach (Situation situationGagnante in EG)
           {
-            break;
+            myContext.InsertEFtmp(situationGagnante.Pierres, idxSG);
+            string trace = $"idxSG={Common.ConvertFlags(idxSG)}\r\n{situationGagnante.Dump(Plateau)}";
+            Parent?.Feedback(enumFeedbackHint.trace, trace);
+            idxSG <<= 1;
           }
+          myContext.renameEFtmp();
         }
+        Config.Pilote.ChangeNF(0);
+        Config.SauvePilote();
       }
-      catch (Exception ex)
-      {
-        Parent?.Feedback(enumFeedbackHint.error, $"{ex}");
-      }
-      State = enumState.stopped;
-      Parent?.Feedback(enumFeedbackHint.endOfJob, "Fin du job");
-    }
-
-    private bool IncrementerND()
-    {
-      HashSet<SituationBase> SDnew = new HashSet<SituationBase>();
-      SituationEtude situationEtude = new SituationEtude(Plateau);
-      // En lecture
-      using (FileStream EDold = Config.OpenData(enumAccesData.EDdat))
-      {
-        int tailleDualSituationDepartRaw = Plateau.NbCasesPlateau - Config.TailleSituationsND;
-        byte[] dualSituationDepartRaw = new byte[tailleDualSituationDepartRaw];
-        int nbSituationsInitiales = EI.Count;
-        byte[] situationsNewAssociees = new byte[nbSituationsInitiales];
-        long nbSDold = EDold.Length / (tailleDualSituationDepartRaw + nbSituationsInitiales);
-        while (LitEntreeED(EDold, dualSituationDepartRaw, situationsNewAssociees, Plateau))
-        {
-          byte[] situationDepartRaw = Plateau.SituationDualeRaw(dualSituationDepartRaw);
-          situationEtude.ChargeSituation(situationDepartRaw);
-          foreach (var mvt in Plateau.MouvementsPossibles)
-          {
-            if (situationEtude.MouvementPossible(mvt))
-            {
-              situationEtude.EffectueMouvement(mvt);
-              SituationDepart situationDepart = TryGetSituation(situationEtude, SDnew) as SituationDepart;
-              if (situationDepart == null)
-              {
-                Situation situationNew = situationEtude.NewSituation();
-                situationDepart = new SituationDepart(situationNew.Pierres, situationsNewAssociees);
-                SDnew.Add(situationDepart);
-              }
-              else
-              {
-                for (int idxSituationInitiale = 0; idxSituationInitiale < nbSituationsInitiales; idxSituationInitiale++)
-                {
-                  if (situationsNewAssociees[idxSituationInitiale] == 0xFF)
-                  {
-                    situationDepart.IdxSituationsInitiales[idxSituationInitiale] = 0xFF;
-                  }
-                }
-              }
-              situationEtude.EffectueMouvementInverse(mvt);
-            }
-          }
-          if (ScheduleInfo.DelivreInfo())
-          {
-            Parent?.Feedback(enumFeedbackHint.info, $"Calcul de {SDnew.Count} situations");
-          }
-          if (State != enumState.running)
-          {
-            Parent.Feedback(enumFeedbackHint.info, "Demande d'arrêt prise en compte");
-            return false;
-          }
-        }
-      }
-
-      // En écriture
-      using (FileStream EDnew = Config.OpenData(enumAccesData.EDtmp))
-      {
-        foreach (SituationDepart situationDepart1 in SDnew)
-        {
-          byte[] situationDuale = Plateau.SituationDualeRaw(situationDepart1.Pierres);
-          EDnew.Write(situationDuale, 0, situationDuale.Length);
-          EDnew.Write(situationDepart1.IdxSituationsInitiales, 0, EI.Count);
-        }
-        Parent?.Feedback(enumFeedbackHint.info, $"Enregistrement de {SDnew.Count} situations");
-      }
-      Config.ReplaceData(enumAccesData.EDdat);
-      Config.Pilote.IncrementerND();
-      Config.SauvePilote();
-      Config.TailleSituationsND--;
-      return true;
     }
 
     // Lance la constrution du fichier EF.dat pour une valeur donnée du paramètre NF
@@ -380,8 +210,60 @@ namespace LeSolitaireLogique
       State = enumState.stopped;
       Parent?.Feedback(enumFeedbackHint.endOfJob, "Fin du job");
     }
-
     private bool IncrementerNF()
+    {
+      Stopwatch stopwatch = Stopwatch.StartNew();
+      SituationEtude situationEtude = new SituationEtude(Plateau);
+      // NF est le nombre de mouvements qu'il reste à faire pour ne laisser qu'une pierre
+      // Il y a NF+1 pierres dans les situations inscrites dans la table EF
+      // Et on veut la remplacer par la table contenant les situations finales à NF+2 pierres
+      int nbPierres = Config.Pilote.Nf + 1;
+      int nbPierresFutures = nbPierres + 1;
+      byte[] idxPierresFutures = new byte[nbPierresFutures];
+      using (MyContext myContextReadAll = new MyContext(Config.Pilote.DBname))
+      {
+        myContextReadAll.CreateEFtmp(nbPierresFutures);
+        using (MyContext myContextTraiteOne = new MyContext(Config.Pilote.DBname))
+        {
+          foreach ((byte[] situation, byte sg) situationEF in myContextReadAll.ReadAllEF(nbPierres))
+          {
+            situationEtude.ChargeSituation(situationEF.situation);
+            foreach (var mvt in Plateau.MouvementsPossibles)
+            {
+              if (situationEtude.MouvementInversePossible(mvt))
+              {
+                situationEtude.EffectueMouvementInverse(mvt);
+                situationEtude.CalculeSituationMinimale(Plateau);
+                Common.Convert(situationEtude.ImagePierres, idxPierresFutures);
+                //string trace = Common.Dump(idxPierresFutures, Plateau);
+                //Parent?.Feedback(enumFeedbackHint.trace, trace);
+                myContextTraiteOne.UpdateOrInsert(idxPierresFutures, situationEF.sg);
+                situationEtude.EffectueMouvement(mvt);
+              }
+            }
+          }
+        }
+        myContextReadAll.renameEFtmp();
+      }
+      Config.Pilote.IncrementerNF();
+      Config.SauvePilote();
+      stopwatch.Stop();
+      Parent?.Feedback(enumFeedbackHint.trace, $"Incrémentation de NF -> {Config.Pilote.Nf} en {stopwatch.Elapsed}");
+      // On dump le nombre de SF regroupées par mêmes SG
+      Parent?.Feedback(enumFeedbackHint.trace, $"sg\tnb");
+      stopwatch.Restart();
+      using (MyContext myContextDump = new MyContext(Config.Pilote.DBname))
+      {
+        foreach ((byte sg, long nbSF) item in myContextDump.DumpSFgroupbySG())
+        {
+          Parent?.Feedback(enumFeedbackHint.trace, $"'{Common.ConvertFlags(item.sg)}\t{item.nbSF}");
+        }
+      }
+      stopwatch.Stop();
+      Parent?.Feedback(enumFeedbackHint.trace, $"Enumération des combinaisons de SG et du nombre de SF associées -> {stopwatch.Elapsed}");
+      return true;
+    }
+    private bool IncrementerNFOld()
     {
       HashSet<SituationBase> SFnew = new HashSet<SituationBase>();
       SituationEtude situationEtude = new SituationEtude(Plateau);
@@ -467,14 +349,14 @@ namespace LeSolitaireLogique
         }
         using (FileStream EDdat = Config.OpenData(enumAccesData.EDdat))
         {
-          NbSD = EDdat.Length / (Plateau.NbCasesPlateau - Config.TailleSituationsND + EI.Count);
+          NbSD = EDdat.Length / (Plateau.NbCasesPlateau - Config.TailleSituationsND + EG.Count);
         }
 
         Parent?.Feedback(enumFeedbackHint.info, $"Début recherche nd={Config.Pilote.Nd}, nf={Config.Pilote.Nf}, nb SD={NbSD} idxReprise={Config.Pilote.IdxReprise} ({100f * Config.Pilote.IdxReprise / NbSD} %)");
         int tailleDualSituationDepartRaw = Plateau.NbCasesPlateau - Config.TailleSituationsND;
         byte[] dualSituationDepartRaw = new byte[tailleDualSituationDepartRaw];
-        int nbSituationsInitiales = EI.Count;
-        byte[] situationsInitialesAssociees = new byte[nbSituationsInitiales];
+        int nbSituationsInitiales = EG.Count;
+        byte situationsInitialesAssociees;
         ScheduleInfo.Start();
         // En lecture
         bool bToutesSIresolues = RechercheSiToutesSituationsInitialesResolues();
@@ -493,7 +375,7 @@ namespace LeSolitaireLogique
             Parent?.Feedback(enumFeedbackHint.trace, "tps % idx");
             while (State == enumState.running && !bToutesSIresolues)
             {
-              if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
+              if (!LitEntreeED(EDdat, dualSituationDepartRaw, out situationsInitialesAssociees, Plateau))
               {
                 break;
               }
@@ -514,12 +396,13 @@ namespace LeSolitaireLogique
                 int nbSIresolues = 0;
                 for (int idxSituationInitiale = 0; idxSituationInitiale < nbSituationsInitiales; idxSituationInitiale++)
                 {
-                  if (situationsInitialesAssociees[idxSituationInitiale] != 0)
+                  byte flag = (byte)(1 << idxSituationInitiale);
+                  if ((situationsInitialesAssociees & flag) == flag)
                   {
-                    if (!EI[idxSituationInitiale].Resolue)
+                    if (!EG[idxSituationInitiale].Resolue)
                     {
                       preSolution.IdxSIlist.Add(idxSituationInitiale);
-                      EI[idxSituationInitiale].Resolue = true;
+                      EG[idxSituationInitiale].Resolue = true;
                       nbSIresolues++;
                     }
                   }
@@ -587,7 +470,7 @@ namespace LeSolitaireLogique
     // Teste si toutes les SI de EI sont marquées comme résolues
     private bool RechercheSiToutesSituationsInitialesResolues()
     {
-      return !EI.list.Any(si => !si.Resolue);
+      return !EG.Any(si => !si.Resolue);
     }
 
     // Lorsqu'on teste une SD, on veut s'assurer qu'elle peut être utile pour au moins une SI.
@@ -596,13 +479,14 @@ namespace LeSolitaireLogique
     //   0 : la SI ne concerne pas cette SD
     //   1 : la SI concerne cette SD et n'est pas encore résolue
     //   2 : la SI concerne cette SD mais est déjà résolue
-    private bool RechercheNouvelleSIpossible(byte[] situationsInitialesAssociees)
+    private bool RechercheNouvelleSIpossible(byte situationsInitialesAssociees)
     {
-      for (int idxSI = 0; idxSI < EI.Count; idxSI++)
+      for (int idxSI = 0; idxSI < EG.Count; idxSI++)
       {
-        if (situationsInitialesAssociees[idxSI] != 0)
+        byte flagEI = (byte)(1 << idxSI);
+        if ((situationsInitialesAssociees & flagEI) == flagEI)
         {
-          if (!EI[idxSI].Resolue)
+          if (!EG[idxSI].Resolue)
           {
             return true;
           }
@@ -616,47 +500,14 @@ namespace LeSolitaireLogique
       SituationsEtude = new SituationsEtude(Plateau);
       SituationStock = new SituationStock(Plateau.NbCasesPlateau);
       Mouvements = new (int idxOrigine, int idxSaut, int idxDestination)[Plateau.NbCasesPlateau];
-      CalculeSituationsInitiales();
       MarqueSituationsInitialesResolues(true);
       RechercheChargeEF();
       return true;
     }
 
-    private void CalculeSituationsInitiales()
-    {
-      EI = new SituationsInitiales();
-      int nbCases = Config.Pilote.PlateauRaw.Count;
-      int nbPierres = Config.Pilote.PlateauRaw.NbPierres;
-      SituationEtude situationEtude = new SituationEtude(Plateau);
-      if (nbCases == nbPierres)
-      {
-        for (int idxCase = 0; idxCase < nbCases; idxCase++)
-        {
-          // Pour chaque case du plateau plein, on retire la pierre afin de constituer une situation initiale possible
-          SituationRaw situationInitialeRaw = new SituationRaw();
-          situationInitialeRaw.AddRange(Config.Pilote.PlateauRaw);
-          // En fait, pour ce que l'on veut en faire, 
-          // il n'est pas nécessaire de conserver dans la description une case si elle est vide.
-          situationInitialeRaw.RemoveAt(idxCase);
-          situationEtude.ChargeSituationRaw(situationInitialeRaw);
-          // Si aucune symétrie de situationInitialeRaw n'est encore dans le stock, y ajouter situationInitialeRaw
-          if (TryGetSituation(situationEtude, EI.hashset) == null)
-          {
-            SituationInitiale situationInitiale = new SituationInitiale(situationEtude.NewSituation());
-            EI.Add(situationInitiale);
-          }
-        }
-      }
-      else
-      {
-        Situation situationInitiale = new Situation(Plateau.Etendue, Config.Pilote.PlateauRaw);
-        EI.Add(new SituationInitiale(situationInitiale));
-      }
-    }
-
     private void CalculeSituationsGagnantes()
     {
-      EG = new List<Situation>();
+      EG = new List<SituationInitiale>();
       int nbCases = Config.Pilote.PlateauRaw.Count;
       SituationEtude situationEtude = new SituationEtude(Plateau);
       HashSet<SituationBase> hEG = new HashSet<SituationBase>();
@@ -669,10 +520,12 @@ namespace LeSolitaireLogique
         // il n'est pas nécessaire de conserver dans la description une case si elle est vide.
         situationInitialeRaw.Add((coordonnee.x, coordonnee.y, true));
         situationEtude.ChargeSituationRaw(situationInitialeRaw);
+        situationEtude.CalculeSituationMinimale(Plateau);
+
+        SituationInitiale situationGagnante = situationEtude.NewSituationImage();
         // Si aucune symétrie de situationInitialeRaw n'est encore dans le stock, y ajouter situationInitialeRaw
-        if (TryGetSituation(situationEtude, hEG) == null)
+        if (!hEG.Contains(situationGagnante))
         {
-          Situation situationGagnante = situationEtude.NewSituation();
           hEG.Add(situationGagnante);
           EG.Add(situationGagnante);
         }
@@ -778,7 +631,7 @@ namespace LeSolitaireLogique
         {
           foreach (int idxPreSolution in preSolution.IdxSIlist)
           {
-            EI[idxPreSolution].Resolue = true;
+            EG[idxPreSolution].Resolue = true;
           }
         }
       }
@@ -798,7 +651,7 @@ namespace LeSolitaireLogique
           hSolutions.Add(solution.SituationInitiale);
         }
       }
-      foreach (SituationInitiale situationInitiale in EI.list.FindAll(si => !si.Resolue))
+      foreach (SituationInitiale situationInitiale in EG.FindAll(si => !si.Resolue))
       {
         situationEtude.ChargeSituation(situationInitiale);
         if (TryGetSituation(situationEtude, hSolutions) != null)
@@ -878,7 +731,6 @@ namespace LeSolitaireLogique
     {
       try
       {
-        CalculeSituationsInitiales();
         MarqueSituationsInitialesResolues(false);
         SituationStock = new SituationStock(Plateau.NbCasesPlateau);
         SituationsEtude = new SituationsEtude(Plateau);
@@ -985,13 +837,14 @@ namespace LeSolitaireLogique
       return false;
     }
 
-    private bool LitEntreeED(FileStream EDdat, byte[] dualSituationDepartRaw, byte[] situationsInitialesAssociees, Plateau plateau)
+    private bool LitEntreeED(FileStream EDdat, byte[] dualSituationDepartRaw, out byte situationsInitialesAssociees, Plateau plateau)
     {
       int tailleDualSituationDepartRaw = dualSituationDepartRaw.Length;
-      int nbSituationsInitiales = situationsInitialesAssociees.Length;
       int n = EDdat.Read(dualSituationDepartRaw, 0, tailleDualSituationDepartRaw);
+
       if (n == 0)
       {
+        situationsInitialesAssociees = 0;
         return false;
       }
       if (n != tailleDualSituationDepartRaw)
@@ -1005,18 +858,12 @@ namespace LeSolitaireLogique
           throw new ApplicationException("Erreur de lecture de ED.dat");
         }
       }
-      n = EDdat.Read(situationsInitialesAssociees, 0, nbSituationsInitiales);
-      if (n != nbSituationsInitiales)
+      n = EDdat.ReadByte();
+      if (n == -1)
       {
         throw new ApplicationException("Erreur de lecture de ED.dat");
       }
-      for (int idxSI = 0; idxSI < nbSituationsInitiales; idxSI++)
-      {
-        if (situationsInitialesAssociees[idxSI] != 0 && situationsInitialesAssociees[idxSI] != 0xFF)
-        {
-          throw new ApplicationException("Erreur de lecture de ED.dat");
-        }
-      }
+      situationsInitialesAssociees = (byte)n;
       return true;
     }
     private List<Solution> Consolider(PreSolution preSolution)
@@ -1025,8 +872,8 @@ namespace LeSolitaireLogique
 
       int tailleDualSituationDepartRaw = Plateau.NbCasesPlateau - Config.TailleSituationsND;
       byte[] dualSituationDepartRaw = new byte[tailleDualSituationDepartRaw];
-      int nbSituationsInitiales = EI.Count;
-      byte[] situationsInitialesAssociees = new byte[nbSituationsInitiales];
+      int nbSituationsInitiales = EG.Count;
+      byte situationsInitialesAssociees;
       ScheduleInfo.Start();
       Situation situationDepart;
       using (FileStream EDdat = Config.OpenData(enumAccesData.EDdat))
@@ -1038,7 +885,7 @@ namespace LeSolitaireLogique
           return solutions;
         }
         EDdat.Seek(offsetFichierED, SeekOrigin.Begin);
-        if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
+        if (!LitEntreeED(EDdat, dualSituationDepartRaw, out situationsInitialesAssociees, Plateau))
         {
           return solutions;
         }
@@ -1068,7 +915,7 @@ namespace LeSolitaireLogique
             Situation situationPrevious = situationEtude.NewSituation();
             SituationStock.Add(situationPrevious);
             Mouvements[situation.NbPierres] = mvt;
-            if (situationPrevious.NbPierres == EI.NbPierres)
+            if (situationPrevious.NbPierres == 36)
             {
               // Cette situation initiale est-elle non résolue ?
               if (Consolider(situationPrevious))
@@ -1078,7 +925,7 @@ namespace LeSolitaireLogique
                 solution.SituationInitiale = situationPrevious;
                 // Pas très optimisé ...
                 solution.SituationInitialeRaw = Common.ChargeSituationRaw(situationPrevious.Dump(Plateau));
-                for (int idxMvt = EI.NbPierres - 1; idxMvt >= Config.TailleSituationsND; idxMvt--)
+                for (int idxMvt = 37 - 1; idxMvt >= Config.TailleSituationsND; idxMvt--)
                 {
                   var mvtSolution = Mouvements[idxMvt];
                   solution.Mouvements.Add(new SolutionMouvement((byte)mvtSolution.idxOrigine, (byte)mvtSolution.idxSaut));
@@ -1099,7 +946,7 @@ namespace LeSolitaireLogique
     {
       SituationEtude situationEtude = new SituationEtude(Plateau);
       situationEtude.ChargeSituation(situationInitiale);
-      SituationInitiale situationInitialeEI = (SituationInitiale)TryGetSituation(situationEtude, EI.hashset);
+      SituationInitiale situationInitialeEI = (SituationInitiale)TryGetSituation(situationEtude, new HashSet<SituationBase>(EG));
       // Dans le cas d'une fiche de jeu qui cible une situation initiale particulière...
       if (situationInitialeEI == null || situationInitialeEI.Resolue)
       {
@@ -1109,117 +956,5 @@ namespace LeSolitaireLogique
       return true;
     }
 
-    public void LanceArrangerED()
-    {
-      if (State != enumState.stopped)
-      {
-        Parent?.Feedback(enumFeedbackHint.error, "processus en cours");
-        return;
-      }
-      State = enumState.running;
-      BgTask = new Task(ArrangerED);
-      BgTask.Start();
-    }
-
-    private void ArrangerED()
-    {
-      try
-      {
-        // Initialisations
-        SituationEtude situationEtude = new SituationEtude(Plateau);
-        HashSet<SituationBase> stock = new HashSet<SituationBase>();
-        // Chargement des situations initiales
-        foreach (Solution solution in Config.Pilote.Solutions)
-        {
-          Situation situation = new Situation(Plateau.Etendue, solution.SituationInitialeRaw);
-          solution.SituationInitiale = new SituationInitiale(situation);
-          stock.Add(solution.SituationInitiale);
-        }
-        foreach (SituationInitiale item in EI.list)
-        {
-          situationEtude.ChargeSituation(item);
-          SituationInitiale situationInitiale = TryGetSituation(situationEtude, stock) as SituationInitiale;
-          if (situationInitiale != null)
-          {
-            item.Resolue = true;
-          }
-        }
-        int tailleDualSituationDepartRaw = Plateau.NbCasesPlateau - Config.TailleSituationsND;
-        byte[] dualSituationDepartRaw = new byte[tailleDualSituationDepartRaw];
-        int nbSituationsInitiales = EI.Count;
-        byte[] situationsInitialesAssociees = new byte[nbSituationsInitiales];
-        Dictionary<string, HashSet<SituationDepart>> dict = new Dictionary<string, HashSet<SituationDepart>>();
-        using (FileStream EDdat = Config.OpenData(enumAccesData.EDdat))
-        {
-          EDdat.Seek(Config.Pilote.IdxReprise * (tailleDualSituationDepartRaw + nbSituationsInitiales), SeekOrigin.Begin);
-          while (State == enumState.running)
-          {
-            if (!LitEntreeED(EDdat, dualSituationDepartRaw, situationsInitialesAssociees, Plateau))
-            {
-              break;
-            }
-            string signature = string.Empty;
-            // Pour chaque SI, on ajoute dans la signature :
-            //  un '1' si cette SI est incluse dans les SI de la SD et si elle n'est pas encore résolue
-            //  un '1' dans le cas contraire
-            for (int idxSI = 0; idxSI < nbSituationsInitiales; idxSI++)
-            {
-              bool inclure = situationsInitialesAssociees[idxSI] != 0 && !EI.list[idxSI].Resolue;
-              if (inclure)
-              {
-                signature += '1';
-              }
-              else
-              {
-                situationsInitialesAssociees[idxSI] = 0;
-                signature += ' ';
-              }
-            }
-            if (signature.Count(c => c == '1') != 0)
-            {
-              if (!dict.ContainsKey(signature))
-              {
-                dict.Add(signature, new HashSet<SituationDepart>());
-              }
-              byte[] situationDepartRaw = Plateau.SituationDualeRaw(dualSituationDepartRaw);
-              SituationDepart situationDepart = new SituationDepart(situationDepartRaw, situationsInitialesAssociees);
-              dict[signature].Add(situationDepart);
-            }
-          }
-        }
-        List<string> signatures = dict.Keys.ToList();
-        // On privilégie les SD ayant le plus de SI associées
-        signatures.Sort((x, y) => y.Count(c => c == '1').CompareTo(x.Count(c => c == '1')));
-        if (State == enumState.running)
-        {
-          using (FileStream EDtmp = Config.OpenData(enumAccesData.EDtmp))
-          {
-            foreach (string signature in signatures)
-            {
-              HashSet<SituationDepart> situationsDepart = dict[signature];
-              foreach (SituationDepart situationDepart in situationsDepart)
-              {
-                dualSituationDepartRaw = Plateau.SituationDualeRaw(situationDepart.Pierres);
-                situationsInitialesAssociees = situationDepart.IdxSituationsInitiales;
-                EDtmp.Write(dualSituationDepartRaw, 0, dualSituationDepartRaw.Length);
-                EDtmp.Write(situationsInitialesAssociees, 0, situationsInitialesAssociees.Length);
-              }
-            }
-          }
-        }
-        if (State == enumState.running)
-        {
-          Config.ReplaceData(enumAccesData.EDdat);
-          Config.Pilote.IdxReprise = 0;
-          Config.SauvePilote();
-        }
-      }
-      catch (Exception ex)
-      {
-        Parent.Feedback(enumFeedbackHint.error, ex.ToString());
-      }
-      State = enumState.stopped;
-      Parent?.Feedback(enumFeedbackHint.endOfJob, "Fin du job");
-    }
   }
 }

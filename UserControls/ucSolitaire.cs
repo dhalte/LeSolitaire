@@ -121,9 +121,8 @@ namespace UserControls
         Logique = new Logique(this);
         enumOp enumOp = Logique.Verifie(fileName);
         RegleActions(enumOp);
-        if ((enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF)
+        if ((enumOp & enumOp.ReglerNF) == enumOp.ReglerNF)
         {
-          tbND.Text = Logique.Config.Pilote.Nd.ToString();
           tbNF.Text = Logique.Config.Pilote.Nf.ToString();
         }
       }
@@ -138,13 +137,10 @@ namespace UserControls
     private void RegleActions(enumOp enumOp)
     {
       actionInitialiser.Enabled = enumOp == enumOp.Initialiser;
-      actionReglerND.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
-      actionReglerNF.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
-      actionArrangerED.Enabled = (enumOp & enumOp.ArrangerND) == enumOp.ArrangerND;
+      actionReglerNF.Enabled = (enumOp & enumOp.ReglerNF) == enumOp.ReglerNF;
       actionRechercher.Enabled = (enumOp & enumOp.Rechercher) == enumOp.Rechercher;
       actionSuspendre.Enabled = enumOp == enumOp.Suspendre;
       actionConsoliderSolutions.Enabled = (enumOp & enumOp.ConsoliderSolutions) == enumOp.ConsoliderSolutions;
-      tbND.Enabled = tbNF.Enabled = (enumOp & enumOp.ReglerNDNF) == enumOp.ReglerNDNF;
     }
 
     private void actionFermer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -180,26 +176,6 @@ namespace UserControls
       {
         Feedback(enumFeedbackHint.error, ex.Message);
       }
-    }
-
-    private void actionReglerND_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-    {
-      pnlActions.Hide();
-      string sND = tbND.Text;
-      bool bOK = int.TryParse(sND, out int nd);
-      bOK = bOK && nd > 0;
-      if (!bOK)
-      {
-        Feedback(enumFeedbackHint.error, "La valeur spécifiée est invalide");
-        return;
-      }
-      // On appelle cette action après initialisation, donc Logique est déjà initialisé
-      if (Logique.Config.Pilote.Nd == nd)
-      {
-        Feedback(enumFeedbackHint.error, "Modifiez la valeur pour calculer un nouveau fichier ED.dat");
-        return;
-      }
-      Logique.LanceReglerND(nd);
     }
 
     private void actionReglerNF_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -241,17 +217,10 @@ namespace UserControls
       Logique.LanceConsolider();
     }
 
-    private void actionArrangerED_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-    {
-      pnlActions.Hide();
-      Logique.LanceArrangerED();
-    }
-
     private void tabMain_SelectedIndexChanged(object sender, EventArgs e)
     {
       if (tabMain.SelectedTab == tabAffichageSolutions)
       {
-
         try
         {
           if (!InitPanneauSolutions())

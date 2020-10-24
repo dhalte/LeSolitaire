@@ -14,15 +14,14 @@ namespace LeSolitaireLogique
     public int Nd { get; private set; }
     public int Nf { get; private set; }
     public long IdxReprise;
+    public string DBname;
     // C'est cet objet qui contient l'étendue du plateau
     public SituationRaw PlateauRaw;
     public List<Solution> Solutions;
     public List<PreSolution> PreSolutions;
     public Pilote()
     {
-      Nd = Nf = 1;
       PlateauRaw = new SituationRaw();
-      IdxReprise = 0;
       Solutions = new List<Solution>();
       PreSolutions = new List<PreSolution>();
     }
@@ -32,6 +31,7 @@ namespace LeSolitaireLogique
       xmlDocument.Load(file.FullName);
       ChargeConfig(xmlDocument);
     }
+    // Pour les tests
     public Pilote(string contenu)
     {
       XmlDocument xmlDocument = new XmlDocument();
@@ -45,6 +45,12 @@ namespace LeSolitaireLogique
       XmlElement xParam = xRoot["parametres"];
       Nd = int.Parse(xParam.GetAttribute("nd"));
       Nf = int.Parse(xParam.GetAttribute("nf"));
+      DBname = xParam.GetAttribute("dbname");
+      // C'est lors de l'initialisation du fichier pilote qu'on donne un nom à la base de données et qu'on la crée
+      if (string.IsNullOrEmpty(DBname) || !LeSolitaireMySQL.Common.DBexists(DBname))
+      {
+        throw new ApplicationException("Base de données non définie");
+      }
       XmlElement xPlateau = xRoot["plateau"];
       string plateau = xPlateau.InnerText;
       PlateauRaw = ChargePlateauRaw(plateau);
@@ -112,6 +118,7 @@ namespace LeSolitaireLogique
       xRoot.AppendChild(xParametres);
       xParametres.SetAttribute("nd", Nd.ToString());
       xParametres.SetAttribute("nf", Nf.ToString());
+      xParametres.SetAttribute("dbname", DBname);
       XmlElement xPlateau = xmlDocument.CreateElement("plateau");
       xRoot.AppendChild(xPlateau);
       xPlateau.InnerText = SauvePlateauRaw(PlateauRaw);
@@ -204,11 +211,18 @@ namespace LeSolitaireLogique
     internal void Initialise(string descriptionPlateauInitial)
     {
       PlateauRaw = Common.ChargeSituationRaw(descriptionPlateauInitial);
-      Nf = Nd = 1;
+      Nf = Nd = 0;
       IdxReprise = 0;
       Solutions.Clear();
       PreSolutions.Clear();
+      DBname = InitDB();
     }
+
+    private string InitDB()
+    {
+      return LeSolitaireMySQL.Common.InitDB();
+    }
+
     internal void ChangeND(int nd)
     {
       Nd = nd;

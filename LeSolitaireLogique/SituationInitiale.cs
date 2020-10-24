@@ -14,5 +14,8 @@ namespace LeSolitaireLogique
     {
     }
 
+    public SituationInitiale(bool[] pierresImages) : base(pierresImages)
+    {
+    }
   }
 }

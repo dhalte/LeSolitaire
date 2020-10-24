@@ -74,5 +74,11 @@
     <Compile Include="SuiviMemoire.cs" />
     <Compile Include="SurveillanceMemoire.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LeSolitaireMySQL\LeSolitaireMySQL.csproj">
+      <Project>{6cf10979-fbac-44c0-adb9-2c2ce345301c}</Project>
+      <Name>LeSolitaireMySQL</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

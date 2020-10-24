@@ -8,16 +8,16 @@ namespace LeSolitaireLogique
 {
   public class SituationDepart : Situation
   {
-    public byte[] IdxSituationsInitiales;
-    public SituationDepart(byte[] situationRaw, int nbSituationsInitiales) : base(situationRaw)
+    // On se limite à 8 situations initiales maximum (cas des plateaux classique et français)
+    // et on gère un tableau de 8 bits.
+    public byte IdxSituationsInitiales;
+    public SituationDepart(byte[] situationRaw) : base(situationRaw)
     {
-      IdxSituationsInitiales = new byte[nbSituationsInitiales];
     }
 
-    public SituationDepart(byte[] situationRaw, byte[] situationsNewAssociees) : base(situationRaw)
+    public SituationDepart(byte[] situationRaw, byte situationsNewAssociees) : base(situationRaw)
     {
-      IdxSituationsInitiales = new byte[situationsNewAssociees.Length];
-      Array.Copy(situationsNewAssociees, IdxSituationsInitiales, situationsNewAssociees.Length);
+      IdxSituationsInitiales = situationsNewAssociees;
     }
   }
 }
