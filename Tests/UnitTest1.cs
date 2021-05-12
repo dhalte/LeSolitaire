@@ -1,9 +1,10 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LeSolitaireLogique;
+using LeSolitaireLogiqueV0;
 using System.Diagnostics;
 using System.Xml;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.IO;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -45,34 +46,6 @@ ooooooo
       situations.Add(situation);
       bool b = situations.Contains(situationEtude);
       Assert.IsTrue(b);
-    }
-
-    [TestMethod]
-    public void HexDump()
-    {
-      string filename = @"C:\Users\halte\reposDivers\LeSolitaire\Jeux\Plateau Français\ED.dat";
-      long sz = 0;
-      byte[] buf = null;
-      using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read))
-      {
-        sz = fs.Length;
-        buf = new byte[sz];
-        fs.Read(buf, 0, (int)sz);
-      }
-      StringBuilder sb = new StringBuilder();
-      for (int idx = 0; idx < sz; idx++)
-      {
-        if (idx % 8 == 0)
-        {
-          sb.AppendLine();
-        }
-        else if (idx % 4 == 0)
-        {
-          sb.Append("  ");
-        }
-        sb.Append($" {buf[idx]:x2}");
-      }
-      Debug.Print(sb.ToString());
     }
 
     [TestMethod]
@@ -158,6 +131,7 @@ ooooooo
       e = 8,         // _1___
       f = 16         // 1____
     }
+    
     [TestMethod]
     public void TesteEnum()
     {
@@ -251,6 +225,69 @@ xxxxxxx
     // cela n'a rien arrangé.
     // Alors j'ai fait exécuter le test au démarrage ( Program.Main() ) et j'ai obtenu un résultat surprenant :
     // Il y a exactement autant de keys que de values. Donc si j'en crois ce résultat, il n'y a aucune collision.
-       
+
+    [TestMethod]
+    public void Testupletliste()
+    {
+      List<(int x, int y)> t = new List<(int x, int y)>();
+      t.Add((1, 2));
+      t[0] = (t[0].x + 10, t[0].y + 20);
+    }
+
+    // Où on vérifie que la version Array.Sort(keys,arr) tri aussi les keys
+    [TestMethod]
+    public void TestTriArray()
+    {
+      int l = 5;
+      string[] s = new string[l];
+      int[] k = new int[l];
+      Random rnd = new Random();
+      for (int i = 0; i < l; i++)
+      {
+        k[i] = rnd.Next(0, 5 * l);
+        string n = "";
+        for (int j = 0; j < 5; j++)
+        {
+          n += (char)('a' + rnd.Next(0, 25));
+        }
+        s[i] = n;
+      }
+      Debug.Print("Avant tri");
+      string t = "";
+      for (int i = 0; i < l; i++)
+      {
+        t = $"{t}{k[i]} {s[i]}\t";
+      }
+      Debug.Print(t);
+      Array.Sort(k, s);
+      Debug.Print("Après tri");
+      t = "";
+      for (int i = 0; i < l; i++)
+      {
+        t = $"{t}{k[i]} {s[i]}\t";
+      }
+      Debug.Print(t);
+    }
+
+    // La simple déclaration d'un uplet suffit à lui allouer de la mémoire
+    // on peut aussi l'utiliser pour lui assigner de nouvelles valeurs, je ne sais pas si cela se fait
+    // par réutilisation de la mémoire déjà allouée ou allocation d'une nouvelle zone mémoire.
+    // On ne peut utiliser fixed() sur des uplets.
+    (byte[] b, int i) uplet;
+    [TestMethod]
+    public unsafe void TestUplet()
+    {
+      uplet.b = new byte[2];
+      uplet.b[0] = 5;
+      uplet.b[1] = 10;
+      uplet.i = 2;
+      Debug.Print($"{uplet.b[0]}, {uplet.b[1]}, {uplet.i}");
+
+      uplet = (new byte[5], 12);
+      uplet.b[0] = 15;
+      uplet.b[1] = 100;
+      uplet.i = 12;
+      Debug.Print($"{uplet.b[0]}, {uplet.b[1]}, {uplet.i}");
+    }
   }
 }

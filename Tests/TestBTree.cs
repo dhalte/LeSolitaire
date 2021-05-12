@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,12 +13,6 @@ namespace Tests
   [TestClass]
   public class TestBTree
   {
-    public TestBTree()
-    {
-      //
-      // TODO: ajoutez ici la logique du constructeur
-      //
-    }
 
     private TestContext testContextInstance;
 
@@ -243,7 +238,6 @@ namespace Tests
     // et extraire la situation médiane, destinée à être insérée dans le noeud parent
     private void InsereSituationSplitNode(Noeud noeud, int situation, int idx, out int situationPivot, out Noeud enfant)
     {
-
       // ordre : nombre max d'enfants, c'est 1+le nombre max de situations.
       // n = ordre-1 : nombre maximum de clés, indicées de 0 à n-1
       // iPivot = (n-1)/2 : indice du pivot pressenti
@@ -295,5 +289,97 @@ namespace Tests
       }
     }
 
+    // On vérifie qu'on peut utiliser SetLength() pour agrandir un fichier
+    [TestMethod]
+    public void TestAgrandissementFichier()
+    {
+      string fullName = "test.dat";
+      FileInfo fi = new FileInfo(fullName);
+      fullName = fi.FullName;
+      Debug.Print(fullName);
+      FileStream fs = new FileStream(fullName, FileMode.Create, FileAccess.ReadWrite);
+      long len = 1024L * 1024L;
+      fs.SetLength(len);
+      fs.Seek(len, SeekOrigin.Begin);
+      byte[] buffer = new byte[1024];
+      for (int i = 0; i < buffer.Length; i++)
+      {
+        buffer[i] = (byte)((i + 1) % 0xFF);
+      }
+      fs.Write(buffer, 0, buffer.Length);
+      fs.Close();
+    }
+    // On vérifie qu'on peut écrire bien au-delà du dernier octet d'un fichier
+    // ça l'agrandit suffisamment pour enregistrer les nouvelles données écrites
+    [TestMethod]
+    public void TestWriteBeyond()
+    {
+      string fullName = "test.dat";
+      FileInfo fi = new FileInfo(fullName);
+      fullName = fi.FullName;
+      Debug.Print(fullName);
+      if (fi.Exists)
+      {
+        fi.Delete();
+      }
+      FileStream fs = new FileStream(fullName, FileMode.Create, FileAccess.ReadWrite);
+      long len = 1024L * 1024L;
+      fs.SetLength(len);
+      fs.Seek(len, SeekOrigin.Begin);
+      byte[] buffer = new byte[1024];
+      for (int i = 0; i < buffer.Length; i++)
+      {
+        buffer[i] = (byte)((i + 1) % 0xFF);
+      }
+      fs.Write(buffer, 0, buffer.Length);
+      fs.Close();
+
+      fs = new FileStream(fullName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+      len = fs.Length;
+      fs.Seek(len + 1024, SeekOrigin.Begin);
+      fs.Write(buffer, 0, buffer.Length);
+      fs.Close();
+
+    }
+    // On vérifie qu'on peut demander à lire bien au-delà de la taille actuelle du fichier
+    // Simplement, le nombre d'octets lus est 0. La taille du fichier n'est pas modifiée.
+    [TestMethod]
+    public void TestReadBeyond()
+    {
+      string fullName = "test.dat";
+      FileInfo fi = new FileInfo(fullName);
+      fullName = fi.FullName;
+      Debug.Print(fullName);
+      if (fi.Exists)
+      {
+        fi.Delete();
+      }
+      FileStream fs = new FileStream(fullName, FileMode.Create, FileAccess.ReadWrite);
+      long len = 1024L * 1024L;
+      fs.SetLength(len);
+      fs.Seek(len, SeekOrigin.Begin);
+      byte[] buffer = new byte[1024];
+      for (int i = 0; i < buffer.Length; i++)
+      {
+        buffer[i] = (byte)((i + 1) % 0xFF);
+      }
+      fs.Write(buffer, 0, buffer.Length);
+      fs.Close();
+
+      fs = new FileStream(fullName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+      len = fs.Length;
+      fs.Seek(len + 1024, SeekOrigin.Begin);
+      int nbRead = fs.Read(buffer, 0, buffer.Length);
+      Assert.IsTrue(nbRead == 0);
+      Assert.IsTrue(len == fs.Length);
+      fs.Close();
+
+      fs = new FileStream(fullName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+      long len1 = fs.Length;
+      Assert.IsTrue(len == len1);
+      fs.Close();
+
+    }
   }
+
 }

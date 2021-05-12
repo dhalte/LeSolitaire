@@ -113,9 +113,9 @@
     <None Include="Resources\Effacer32x18.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LeSolitaireLogique\LeSolitaireLogique.csproj">
+    <ProjectReference Include="..\LeSolitaireLogiqueV0\LeSolitaireLogiqueV0.csproj">
       <Project>{217545b9-8edc-44d6-8f25-c257e69d5260}</Project>
-      <Name>LeSolitaireLogique</Name>
+      <Name>LeSolitaireLogiqueV0</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

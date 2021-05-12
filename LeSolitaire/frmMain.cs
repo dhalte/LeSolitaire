@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
-using LeSolitaireLogique;
+//using LeSolitaireLogique;
 
 namespace LeSolitaire
 {
