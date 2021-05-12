@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BCA4C8A5-E3FA-468A-A31D-1B887DF668EB}</ProjectGuid>
+    <ProjectGuid>{217545B9-8EDC-44D6-8F25-C257E69D5260}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LeSolitaireLogique</RootNamespace>
-    <AssemblyName>LeSolitaireLogique</AssemblyName>
+    <RootNamespace>LeSolitaireLogiqueV0</RootNamespace>
+    <AssemblyName>LeSolitaireLogiqueV0</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -21,7 +21,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,11 +29,11 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -43,18 +42,43 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FeedbackHint.cs" />
-    <Compile Include="Feedback.cs" />
-    <Compile Include="Moteur.cs" />
+    <Compile Include="Common.cs" />
+    <Compile Include="enumAccesData.cs" />
+    <Compile Include="enumDirection.cs" />
+    <Compile Include="enumFeedbackHint.cs" />
+    <Compile Include="enumOp.cs" />
+    <Compile Include="enumState.cs" />
+    <Compile Include="enumSymetries.cs" />
+    <Compile Include="Etendue.cs" />
+    <Compile Include="IFeedback.cs" />
+    <Compile Include="Logique.cs" />
+    <Compile Include="LogiqueConfiguration.cs" />
+    <Compile Include="Matrice2x3.cs" />
+    <Compile Include="Mvt.cs" />
+    <Compile Include="Pilote.cs" />
+    <Compile Include="Plateau.cs" />
+    <Compile Include="PlateauClassique.cs" />
+    <Compile Include="PreSolution.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\enumSymetries.cs" />
-    <Compile Include="Services\Matrice2x3.cs" />
-    <Compile Include="Services\Plateau.cs" />
+    <Compile Include="ScheduleInfo.cs" />
+    <Compile Include="Situation.cs" />
+    <Compile Include="SituationBase.cs" />
+    <Compile Include="SituationDepart.cs" />
+    <Compile Include="SituationEtude.cs" />
+    <Compile Include="SituationInitiale.cs" />
+    <Compile Include="SituationRaw.cs" />
+    <Compile Include="SituationsEtude.cs" />
+    <Compile Include="SituationsInitiales.cs" />
+    <Compile Include="SituationStock.cs" />
+    <Compile Include="Solution.cs" />
+    <Compile Include="SolutionMouvement.cs" />
+    <Compile Include="SuiviMemoire.cs" />
+    <Compile Include="SurveillanceMemoire.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LeSolitaireStockage\LeSolitaireStockage.csproj">
-      <Project>{a5e0e0c6-693e-474c-aa0f-e211c414770f}</Project>
-      <Name>LeSolitaireStockage</Name>
+    <ProjectReference Include="..\LeSolitaireMySQL\LeSolitaireMySQL.csproj">
+      <Project>{6cf10979-fbac-44c0-adb9-2c2ce345301c}</Project>
+      <Name>LeSolitaireMySQL</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

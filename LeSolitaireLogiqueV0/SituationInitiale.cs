@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LeSolitaireLogiqueV0
+{
+  public class SituationInitiale : Situation
+  {
+    public bool Resolue;
+
+    public SituationInitiale(Situation situation) : base(situation.Pierres)
+    {
+    }
+
+    public SituationInitiale(bool[] pierresImages) : base(pierresImages)
+    {
+    }
+  }
+}

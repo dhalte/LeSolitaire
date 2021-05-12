@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using LeSolitaireLogique;
+using LeSolitaireLogiqueV0;
 using System.Diagnostics;
 using System.Net.Configuration;
 using System.Net.Http.Headers;

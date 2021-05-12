@@ -95,10 +95,6 @@
     <None Include="Resources\Effacer32x18.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LeSolitaireLogique\LeSolitaireLogique.csproj">
-      <Project>{217545b9-8edc-44d6-8f25-c257e69d5260}</Project>
-      <Name>LeSolitaireLogique</Name>
-    </ProjectReference>
     <ProjectReference Include="..\UserControls\UserControls.csproj">
       <Project>{afca6834-e6c0-416d-a9a3-e65f08c46964}</Project>
       <Name>UserControls</Name>
