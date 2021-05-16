@@ -93,6 +93,16 @@ namespace UserControls.Properties {
         /// <summary>
         ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Ouvrir22x18 {
+            get {
+                object obj = ResourceManager.GetObject("Ouvrir22x18", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Pierre {
             get {
                 object obj = ResourceManager.GetObject("Pierre", resourceCulture);
