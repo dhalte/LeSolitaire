@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using LeSolitaireLogiqueV0;
+using LeSolitaireLogique;
 using System.Diagnostics;
 using System.Net.Configuration;
 using System.Net.Http.Headers;
@@ -16,7 +16,7 @@ using System.Windows.Forms.VisualStyles;
 
 namespace UserControls
 {
-  public partial class ucSolitaire : UserControl, IFeedback
+  public partial class ucSolitaire : UserControl, Feedback
   {
     public ucSolitaire()
     {
@@ -44,8 +44,8 @@ namespace UserControls
       ucFichier.Enabled = !running;
     }
 
-    private delegate void FeedbackDelegate(enumFeedbackHint hint, string msg);
-    public void Feedback(enumFeedbackHint hint, string msg)
+    private delegate void FeedbackDelegate(FeedbackHint hint, string msg);
+    public void Feedback(FeedbackHint hint, string msg)
     {
       if (InvokeRequired)
       {
@@ -55,17 +55,17 @@ namespace UserControls
       string head;
       switch (hint)
       {
-        case enumFeedbackHint.trace:
+        case FeedbackHint.trace:
           head = string.Empty;
           break;
-        case enumFeedbackHint.info:
+        case FeedbackHint.info:
           head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           break;
-        case enumFeedbackHint.error:
+        case FeedbackHint.error:
           tabMain.SelectedTab = tabSuivi;
           head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           break;
-        case enumFeedbackHint.endOfJob:
+        case FeedbackHint.endOfJob:
           head = $"{DateTime.Now:HH:mm:ss} {hint} ";
           tabMain.SelectedTab = tabSuivi;
           SwitchDisplay(false);
@@ -128,7 +128,7 @@ namespace UserControls
       }
       catch (Exception ex)
       {
-        Feedback(enumFeedbackHint.error, ex.Message);
+        Feedback(FeedbackHint.error, ex.Message);
         return false;
       }
       return true;
@@ -174,7 +174,7 @@ namespace UserControls
       }
       catch (Exception ex)
       {
-        Feedback(enumFeedbackHint.error, ex.Message);
+        Feedback(FeedbackHint.error, ex.Message);
       }
     }
 
@@ -186,13 +186,13 @@ namespace UserControls
       bOK = bOK && nf > 0;
       if (!bOK)
       {
-        Feedback(enumFeedbackHint.error, "La valeur spécifiée est invalide");
+        Feedback(FeedbackHint.error, "La valeur spécifiée est invalide");
         return;
       }
       // On appelle cette action après initialisation, donc Logique est déjà initialisé
       if (Logique.Config.Pilote.Nf == nf)
       {
-        Feedback(enumFeedbackHint.error, "Modifiez la valeur pour calculer un nouveau fichier EF.dat");
+        Feedback(FeedbackHint.error, "Modifiez la valeur pour calculer un nouveau fichier EF.dat");
         return;
       }
       Logique.LanceReglerNF(nf);
@@ -201,7 +201,7 @@ namespace UserControls
     private void actionSuspendre_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
       pnlActions.Hide();
-      Feedback(enumFeedbackHint.info, "Demande postée");
+      Feedback(FeedbackHint.info, "Demande postée");
       Logique?.StoppeBgTask();
     }
 
@@ -225,14 +225,14 @@ namespace UserControls
         {
           if (!InitPanneauSolutions())
           {
-            Feedback(enumFeedbackHint.error, "Spécifier une fiche de jeu valide");
+            Feedback(FeedbackHint.error, "Spécifier une fiche de jeu valide");
             tabMain.SelectedTab = tabSuivi;
             return;
           }
         }
         catch (Exception ex)
         {
-          Feedback(enumFeedbackHint.error, $"Spécifier une fiche de jeu valide : {ex.Message}");
+          Feedback(FeedbackHint.error, $"Spécifier une fiche de jeu valide : {ex.Message}");
         }
       }
     }
@@ -275,5 +275,6 @@ namespace UserControls
     {
       ucAffichageSolution.ChangeSolution(cbListeSolutions.SelectedIndex);
     }
+
   }
 }

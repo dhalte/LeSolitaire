@@ -1,44 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
-using LeSolitaireStockage;
+using BTree;
 
 namespace LeSolitaireLogique.Services
 {
-  internal class Plateau : ComparateurSituations
+  internal class Plateau : IComparateurSituations
   {
     // Les 5 octets décrivant l'état des cases d'une situation
     internal const int TailleDescriptionSituation = 5;
     // L'octet supplémentaire décrivant les situations initiales pouvant mener à la situation décrite
     internal const int TailleDescriptionSituationEtMasque = TailleDescriptionSituation + 1;
-    private int NbCases;
+    private readonly int NbCases;
     // Tableau permettant de connaitre l'indice d'une case du plateau en fonction de ses coordonnées
     // Les cases du plateau sont indicées à partir de 0.
     // Les cases du rectangle englobant qui ne sont pas du plateau ont un indice négatif.
     private (int Width, int Height) TailleRectangleEnglobant;
-    private int[,] IndicesCasesInRectangleEnglobant;
+    private readonly int[,] IndicesCasesInRectangleEnglobant;
     // Tableau permettant de connaitre les coordonnées d'une case sachant son indice
-    private (int x, int y)[] CoordonneesCases;
-    // Liste tous les mouvements possibles,
-    // Chaque triplet (c1, c2, c3) représente les indices de 3 cases contigües alignées du plateau
-    private List<(int c1, int c2, int c3)> MouvementsPossibles;
+    private readonly (int x, int y)[] CoordonneesCases;
+    private readonly List<Mouvement> MouvementsPossibles;
 
     // Indices et masques à utiliser pour manipuler les byte[] représentant l'état des cases d'un plateau
     // Ne dépend pas des coordonnées de ces cases
-    private (int indice, byte masque, byte masqueComplementaire)[] IndicesEtMasquesCases;
+    private readonly (int indice, byte masque, byte masqueComplementaire)[] IndicesEtMasquesCases;
     // Liste des symétries conservant globalement le plateau
     // On n'inclue pas l'identité dans ce tableau
-    private List<int[]> SymetriesPlateau;
+    private readonly List<int[]> SymetriesPlateau;
     // Ce buffer aura une taille de 5*(1+SymetriesPlateau.Count) octets.
     // Les 5 premiers octets contiennent une situation donnée.
     // Les groupes suivants de 5 octets contiennent les situations obtenues en appliquant une symétrie du plateau.
-    private byte[] BufferSituation;
+    // BufferSituation[idxSituation] est un buffer de taille TailleDescriptionSituation qui contient une description de l'état des cases du plateau
+    private readonly byte[][] BufferSituation;
 
+    // Variable d'état du plateau
+    internal bool Complet;
+    internal EnumReprise Reprise = EnumReprise.None;
+    internal byte[] SituationReprise;
     private Plateau(List<(int x, int y)> cases)
     {
       #region Premières vérifications
@@ -58,12 +62,12 @@ namespace LeSolitaireLogique.Services
       }
       int xMin = int.MaxValue, xMax = int.MinValue;
       int yMin = int.MaxValue, yMax = int.MinValue;
-      foreach (var c in cases)
+      foreach (var (x, y) in cases)
       {
-        if (xMin > c.x) xMin = c.x;
-        if (xMax < c.x) xMax = c.x;
-        if (yMin > c.y) yMin = c.y;
-        if (yMax < c.y) yMax = c.y;
+        if (xMin > x) xMin = x;
+        if (xMax < x) xMax = x;
+        if (yMin > y) yMin = y;
+        if (yMax < y) yMax = y;
       }
       if (xMin != 0)
       {
@@ -77,8 +81,7 @@ namespace LeSolitaireLogique.Services
       CoordonneesCases = new (int x, int y)[NbCases];
       for (int idx = 0; idx < NbCases; idx++)
       {
-        (int x, int y) c = cases[idx];
-        CoordonneesCases[idx] = (c.x, c.y);
+        CoordonneesCases[idx] = cases[idx];
       }
       // Tri des cases du plateau de gauche à droite depuis le haut vers le bas
       Array.Sort(CoordonneesCases, ((int x, int y) c1, (int x, int y) c2) => c1.y == c2.y ? c1.x.CompareTo(c2.x) : c1.y.CompareTo(c2.y));
@@ -97,12 +100,12 @@ namespace LeSolitaireLogique.Services
       // Attribution aux cases représentant une case du plateau d'un indice croissant à partir de 0
       for (int idx = 0; idx < NbCases; idx++)
       {
-        (int x, int y) c = CoordonneesCases[idx];
-        IndicesCasesInRectangleEnglobant[c.x, c.y] = idx;
+        (int x, int y) = CoordonneesCases[idx];
+        IndicesCasesInRectangleEnglobant[x, y] = idx;
       }
       #endregion Construction d'un tableau permettant de connaitre l'indice d'une case du plateau en fonction de ses coordonnées
       #region Recherche des mouvements possibles
-      MouvementsPossibles = new List<(int c1, int c2, int c3)>();
+      MouvementsPossibles = new List<Mouvement>();
       for (int yc1 = 0; yc1 <= yMax; yc1++)
       {
         for (int xc1 = 0; xc1 <= xMax; xc1++)
@@ -116,25 +119,25 @@ namespace LeSolitaireLogique.Services
           xc2 = xc1; yc2 = yc1 - 1; xc3 = xc2; yc3 = yc2 - 1;
           if (!(yc2 < 0 || yc3 < 0 || IndicesCasesInRectangleEnglobant[xc2, yc2] < 0 || IndicesCasesInRectangleEnglobant[xc3, yc3] < 0))
           {
-            MouvementsPossibles.Add((IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
+            MouvementsPossibles.Add(new Mouvement(IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
           }
           // vers l'est
           xc2 = xc1 + 1; yc2 = yc1; xc3 = xc2 + 1; yc3 = yc2;
           if (!(xc2 > xMax || xc3 > xMax || IndicesCasesInRectangleEnglobant[xc2, yc2] < 0 || IndicesCasesInRectangleEnglobant[xc3, yc3] < 0))
           {
-            MouvementsPossibles.Add((IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
+            MouvementsPossibles.Add(new Mouvement(IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
           }
           // vers le sud
           xc2 = xc1; yc2 = yc1 + 1; xc3 = xc2; yc3 = yc2 + 1;
           if (!(yc2 > yMax || yc3 > yMax || IndicesCasesInRectangleEnglobant[xc2, yc2] < 0 || IndicesCasesInRectangleEnglobant[xc3, yc3] < 0))
           {
-            MouvementsPossibles.Add((IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
+            MouvementsPossibles.Add(new Mouvement(IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
           }
           // vers l'ouest
           xc2 = xc1 - 1; yc2 = yc1; xc3 = xc2 - 1; yc3 = yc2;
           if (!(xc2 < 0 || xc3 < 0 || IndicesCasesInRectangleEnglobant[xc2, yc2] < 0 || IndicesCasesInRectangleEnglobant[xc3, yc3] < 0))
           {
-            MouvementsPossibles.Add((IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
+            MouvementsPossibles.Add(new Mouvement(IndicesCasesInRectangleEnglobant[xc1, yc1], IndicesCasesInRectangleEnglobant[xc2, yc2], IndicesCasesInRectangleEnglobant[xc3, yc3]));
           }
         }
       }
@@ -196,10 +199,99 @@ namespace LeSolitaireLogique.Services
             SymetriesPlateau.Add(indirection);
           }
         }
-        BufferSituation = new byte[TailleDescriptionSituation * (1 + SymetriesPlateau.Count)];
+        BufferSituation = new byte[1 + SymetriesPlateau.Count][];
+        for (int idxSym = 0; idxSym <= SymetriesPlateau.Count; idxSym++)
+        {
+          BufferSituation[idxSym] = new byte[TailleDescriptionSituation];
+        }
       }
       #endregion Etablissement des symétries qui conservent globalement le plateau
     }
+
+    internal class EnumerationNouvellesSituationsNormalisees
+    {
+      private readonly Plateau Plateau;
+      private int idxMvt = 0;
+      private readonly byte[] Situation;
+      internal byte[] NouvelleSituation;
+      internal EnumerationNouvellesSituationsNormalisees(Plateau plateau, byte[] situation)
+      {
+        Plateau = plateau;
+        Situation = situation;
+        NouvelleSituation = new byte[situation.Length];
+      }
+      internal bool Next()
+      {
+        for (; idxMvt < Plateau.MouvementsPossibles.Count; idxMvt++)
+        {
+          if (Plateau.MouvementAutorise(Situation, idxMvt))
+          {
+            Plateau.MouvementEffectue(Situation, idxMvt, NouvelleSituation);
+            Plateau.Normalise(NouvelleSituation);
+            idxMvt++;
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    // La situation passée en paramètre comporte ou non le flag
+    // Elle est remplacée par la plus petite siuation équivalente, le flag, s'il est présent, n'est pas touché.
+    private unsafe void Normalise(byte[] situation)
+    {
+      // Copie sans le flag des états des cases de la situation dans le premier buffer (sans le flag)
+      Array.Copy(situation, BufferSituation[0], TailleDescriptionSituation);
+
+      // Calcul de toutes les situations équivalentes et ajout aux buffers de BufferSituation
+      for (int idxSymetrie = 0; idxSymetrie < SymetriesPlateau.Count; idxSymetrie++)
+      {
+        int[] symetrie = SymetriesPlateau[idxSymetrie];
+        for (int idxCase = 0; idxCase < NbCases; idxCase++)
+        {
+          if (CaseOccupee(situation, idxCase))
+          {
+            PlacePierre(BufferSituation[1 + idxSymetrie], symetrie[idxCase]);
+          }
+          else
+          {
+            EnlevePierre(BufferSituation[1 + idxSymetrie], symetrie[idxCase]);
+          }
+        }
+      }
+      // Comparaison des situations équivalentes pour déterminer la plus petite d'entre elles
+      int idxSituationNormalisee = 0;
+      for (int idxSituation = 1; idxSituation <= SymetriesPlateau.Count; idxSituation++)
+      {
+        int n = CompareSituations(BufferSituation[idxSituation], BufferSituation[idxSituationNormalisee]);
+        if (n < 0)
+        {
+          idxSituationNormalisee = idxSituation;
+        }
+      }
+      if (idxSituationNormalisee > 0)
+      {
+        Array.Copy(BufferSituation[idxSituationNormalisee], situation, TailleDescriptionSituation);
+      }
+    }
+
+    private void MouvementEffectue(byte[] situation, int idxMvt, byte[] nouvelleSituation)
+    {
+      Array.Copy(situation, nouvelleSituation, TailleDescriptionSituationEtMasque);
+      Mouvement mvt = MouvementsPossibles[idxMvt];
+      EnlevePierre(nouvelleSituation, mvt.c1);
+      EnlevePierre(nouvelleSituation, mvt.c2);
+      PlacePierre(nouvelleSituation, mvt.c3);
+    }
+
+    private bool MouvementAutorise(byte[] situation, int idxMvt)
+    {
+      Mouvement mvt = MouvementsPossibles[idxMvt];
+      return CaseOccupee(situation, mvt.c1) && CaseOccupee(situation, mvt.c2) && !CaseOccupee(situation, mvt.c3);
+    }
+
+    // Liste des solutions déjà déterminées (complètes ou partielles)
+    private readonly List<Solution> Solutions = new List<Solution>();
 
     private bool CalculeSymetriePlateau(Matrice2x3 matrice, int[] indirection)
     {
@@ -226,6 +318,11 @@ namespace LeSolitaireLogique.Services
       return bOK;
     }
 
+    internal unsafe bool CaseOccupee(byte[] P, int i)
+    {
+      return (P[IndicesEtMasquesCases[i].indice] & IndicesEtMasquesCases[i].masque) != 0;
+    }
+
     internal unsafe bool CaseOccupee(byte* P, int i)
     {
       return (P[IndicesEtMasquesCases[i].indice] & IndicesEtMasquesCases[i].masque) != 0;
@@ -234,7 +331,15 @@ namespace LeSolitaireLogique.Services
     {
       P[IndicesEtMasquesCases[i].indice] |= IndicesEtMasquesCases[i].masque;
     }
+    internal void PlacePierre(byte[] P, int i)
+    {
+      P[IndicesEtMasquesCases[i].indice] |= IndicesEtMasquesCases[i].masque;
+    }
     internal unsafe void EnlevePierre(byte* P, int i)
+    {
+      P[IndicesEtMasquesCases[i].indice] &= IndicesEtMasquesCases[i].masqueComplementaire;
+    }
+    internal void EnlevePierre(byte[] P, int i)
     {
       P[IndicesEtMasquesCases[i].indice] &= IndicesEtMasquesCases[i].masqueComplementaire;
     }
@@ -250,15 +355,41 @@ namespace LeSolitaireLogique.Services
       }
       return 0;
     }
+    public unsafe int CompareSituations(byte[] p1, byte* p2)
+    {
+      for (int i = 0; i < TailleDescriptionSituation; i++)
+      {
+        int c = p1[i].CompareTo(p2[i]);
+        if (c != 0)
+        {
+          return c;
+        }
+      }
+      return 0;
+    }
+    public int CompareSituations(byte[] p1, byte[] p2)
+    {
+      for (int i = 0; i < TailleDescriptionSituation; i++)
+      {
+        int c = p1[i].CompareTo(p2[i]);
+        if (c != 0)
+        {
+          return c;
+        }
+      }
+      return 0;
+    }
     public unsafe bool MajSituation(byte* pSituationNew, byte* pSituationExistante)
     {
-      byte* b1 = &pSituationExistante[TailleDescriptionSituationEtMasque - 1];
-      byte b = (byte)(*b1 | pSituationNew[TailleDescriptionSituationEtMasque - 1]);
-      if (*b1 == b)
+      byte* bNew = &pSituationNew[TailleDescriptionSituationEtMasque - 1];
+      byte* bOld = &pSituationExistante[TailleDescriptionSituationEtMasque - 1];
+      byte bMaj = (byte)(*bOld | *bNew);
+      if (*bOld == bMaj)
       {
         return false;
       }
-      *b1 = b;
+      *bOld = bMaj;
+      *bNew = bMaj;
       return true;
     }
     internal static Plateau DecodeDescription(string description)
@@ -309,98 +440,56 @@ namespace LeSolitaireLogique.Services
       return new Plateau(cases);
     }
 
-    internal unsafe List<byte[]> CalculeSituationsInitiales()
+    internal List<byte[]> CalculeSituationsInitiales()
     {
+      byte[] situation = new byte[TailleDescriptionSituation];
       List<byte[]> result = new List<byte[]>();
-      fixed (byte* pBufferSituation = BufferSituation)
+      // Il faut gérer prudemment les derniers bits qui ne sont pas représentatifs d'une case, puisqu'il y a moins de cases que 5*8
+      // On vide le plateau
+      for (int idxByte = 0; idxByte < TailleDescriptionSituation; idxByte++)
       {
-        // Il faut gérer prudemment les derniers bits qui ne sont pas représentatifs d'une case, puisqu'il y a moins de cases que 5*8
-        // On vide le plateau
-        for (int idxByte = 0; idxByte < TailleDescriptionSituation; idxByte++)
+        situation[idxByte] = 0;
+      }
+      // On le remplit de pierres
+      for (int idxCase = 0; idxCase < NbCases; idxCase++)
+      {
+        PlacePierre(situation, idxCase);
+      }
+      int idxPierrePrev = -1;
+      // On va successivement enlever chaque pierre d'un plateau complet
+      for (int idxPierre = 0; idxPierre < NbCases; idxPierre++)
+      {
+        // On remet la pierre précédemment enlevée
+        if (idxPierrePrev >= 0)
         {
-          *(pBufferSituation + idxByte) = 0;
+          PlacePierre(situation, idxPierrePrev);
         }
-        // On le remplit de pierres
-        for (int idxCase = 0; idxCase < NbCases; idxCase++)
+        // On enlève exactement une pierre
+        EnlevePierre(situation, idxPierre);
+        idxPierrePrev = idxPierre;
+        Array.Copy(situation, BufferSituation[0], TailleDescriptionSituation);
+        Normalise(BufferSituation[0]);
+
+        // Test si cette situation de référence est nouvelle dans la liste des situations initiales
+        bool bExists = false;
+        foreach (byte[] situationInitiale in result)
         {
-          PlacePierre(pBufferSituation, idxCase);
+          if (CompareSituations(situationInitiale, BufferSituation[0]) == 0)
+          {
+            bExists = true;
+            break;
+          }
         }
-        int idxPierrePrev = -1;
-        // On va successivement enlever chaque pierre d'un plateau complet
-        for (int idxPierre = 0; idxPierre < NbCases; idxPierre++)
+        if (!bExists)
         {
-          // On remet la pierre précédemment enlevée
-          if (idxPierrePrev >= 0)
-          {
-            PlacePierre(pBufferSituation, idxPierrePrev);
-          }
-          // On enlève exactement une pierre
-          EnlevePierre(pBufferSituation, idxPierre);
-          idxPierrePrev = idxPierre;
-          // On génère toutes les images par symétrie de ce plateau initial, qu'on place dans les autres blocs de 5 octets de BufferSituation
-          for (int idxSymetrie = 0; idxSymetrie < SymetriesPlateau.Count; idxSymetrie++)
-          {
-            int[] symetrie = SymetriesPlateau[idxSymetrie];
-            int offset = (1 + idxSymetrie) * TailleDescriptionSituation;
-            for (int idxCase = 0; idxCase < NbCases; idxCase++)
-            {
-              int idxCaseSym = symetrie[idxCase];
-              if (CaseOccupee(pBufferSituation, idxCase))
-              {
-                PlacePierre(pBufferSituation + offset, idxCaseSym);
-              }
-              else
-              {
-                EnlevePierre(pBufferSituation + offset, idxCaseSym);
-              }
-            }
-          }
-#if DEBUG
-          Debug.Print("--- liste des situations symétriques");
-          for (int idxSymetrie = 0; idxSymetrie < 1 + SymetriesPlateau.Count; idxSymetrie++)
-          {
-            Debug.Print($"symétrie {idxSymetrie}");
-            Debug.Print(Dump(pBufferSituation + idxSymetrie * TailleDescriptionSituation));
-          }
-#endif
-          // Recherche de la situation de référence parmi toutes ces situations équivalentes
-          int idxSituationRef = 0;
-          for (int idxSymetrie = 1; idxSymetrie < 1 + SymetriesPlateau.Count; idxSymetrie++)
-          {
-            byte* situationRef = pBufferSituation + idxSituationRef * TailleDescriptionSituation;
-            byte* situationCmp = pBufferSituation + idxSymetrie * TailleDescriptionSituation;
-            if (CompareSituations(situationRef, situationCmp) > 0)
-            {
-              idxSituationRef = idxSymetrie;
-            }
-          }
-          // Test si cette situation de référence est nouvelle dans la liste des situations initiales
-          bool bExists = false;
-          byte* situation = pBufferSituation + idxSituationRef * TailleDescriptionSituation;
-          foreach (byte[] situationInitiale in result)
-          {
-            fixed (byte* pSituationInitiale = situationInitiale)
-            {
-              if (CompareSituations(pSituationInitiale, situation) == 0)
-              {
-                bExists = true;
-                break;
-              }
-            }
-          }
-          if (!bExists)
-          {
-            // Ajout de la nouvelle situation de référence, avec son champ de flags l'identifiant
-            byte[] nvlSituation = new byte[TailleDescriptionSituationEtMasque];
-            for (int idxByte = 0; idxByte < TailleDescriptionSituation; idxByte++)
-            {
-              nvlSituation[idxByte] = *(situation + idxByte);
-            }
-            nvlSituation[TailleDescriptionSituationEtMasque - 1] = (byte)(1 << result.Count);
-            result.Add(nvlSituation);
-          }
+          // Ajout de la nouvelle situation de référence, avec son champ de flags l'identifiant
+          byte[] nvlSituation = new byte[TailleDescriptionSituationEtMasque];
+          Array.Copy(BufferSituation[0], nvlSituation, TailleDescriptionSituation);
+          nvlSituation[TailleDescriptionSituationEtMasque - 1] = (byte)(1 << result.Count);
+          result.Add(nvlSituation);
         }
       }
+
       if (result.Count > 8)
       {
         throw new ApplicationException("Trop de situations initiales différentes");
@@ -435,14 +524,14 @@ namespace LeSolitaireLogique.Services
       }
       for (int idxCase = 0; idxCase < NbCases; idxCase++)
       {
-        (int x, int y) c = CoordonneesCases[idxCase];
+        (int x, int y) = CoordonneesCases[idxCase];
         if (CaseOccupee(situation, idxCase))
         {
-          result[c.x, c.y] = 'x';
+          result[x, y] = 'x';
         }
         else
         {
-          result[c.x, c.y] = 'o';
+          result[x, y] = 'o';
         }
       }
       StringBuilder sb = new StringBuilder();
@@ -469,11 +558,11 @@ namespace LeSolitaireLogique.Services
       root.AppendChild(plateau);
       for (int idxcase = 0; idxcase < NbCases; idxcase++)
       {
-        (int x, int y) c = CoordonneesCases[idxcase];
+        (int x, int y) = CoordonneesCases[idxcase];
         XmlElement xCase = xDoc.CreateElement("Case");
         plateau.AppendChild(xCase);
-        xCase.SetAttribute("x", c.x.ToString());
-        xCase.SetAttribute("y", c.y.ToString());
+        xCase.SetAttribute("x", x.ToString());
+        xCase.SetAttribute("y", y.ToString());
       }
       XmlElement etat = xDoc.CreateElement("Etat");
       root.AppendChild(etat);
@@ -481,6 +570,112 @@ namespace LeSolitaireLogique.Services
       etat.SetAttribute("reprise", "");
       etat.SetAttribute("situation", "");
       xDoc.Save(Path.Combine(repertoire.FullName, NomFichierPilote));
+    }
+
+    internal static Plateau ChargerFichierPilote(DirectoryInfo repertoire)
+    {
+      string fichierPilote = Path.Combine(repertoire.FullName, NomFichierPilote);
+      if (!File.Exists(fichierPilote))
+      {
+        throw new ApplicationException($"impossible de trouver le fichier pilote {fichierPilote}");
+      }
+      XmlDocument xDoc = new XmlDocument();
+      // Peut déclencher une erreur si syntaxe incorrecte
+      xDoc.Load(fichierPilote);
+      XmlElement xRoot = xDoc.DocumentElement;
+      XmlElement xPlateau = xRoot["Plateau"];
+      if (xPlateau == null)
+      {
+        throw new ApplicationException($"Fichier pilote incorrect, description plateau introuvable");
+      }
+      List<(int x, int y)> cases = new List<(int x, int y)>();
+      foreach (XmlElement xCase in xPlateau.SelectNodes("Case"))
+      {
+        string sx = xCase.GetAttribute("x"), sy = xCase.GetAttribute("y");
+        if (!int.TryParse(sx, out int x) || !int.TryParse(sy, out int y))
+        {
+          throw new ApplicationException($"Fichier pilote incorrect, coordonnées non ou mal définies : {xCase.OuterXml}");
+        }
+        cases.Add((x, y));
+      }
+      Plateau plateau = new Plateau(cases);
+      XmlElement xEtat = xRoot["Etat"];
+      if (xEtat == null)
+      {
+        throw new ApplicationException($"Fichier pilote incorrect, description état introuvable");
+      }
+      string sComplet = xEtat.GetAttribute("complet"), sReprise = xEtat.GetAttribute("reprise"), sSituationReprise = xEtat.GetAttribute("situation");
+      if (!bool.TryParse(sComplet, out bool complet) || !Plateau.TryParseReprise(sReprise, out EnumReprise reprise))
+      {
+        throw new ApplicationException($"Fichier pilote incorrect, état non ou mal défini : {xEtat.OuterXml}");
+      }
+      byte[] situationReprise = null;
+      if (reprise != EnumReprise.None && !Plateau.TryParseSituation(sSituationReprise, out situationReprise))
+      {
+        throw new ApplicationException($"Fichier pilote incorrect, état non ou mal défini : {xEtat.OuterXml}");
+      }
+      plateau.InitEtat(complet, reprise, situationReprise);
+      foreach (XmlElement xSolution in xRoot.SelectNodes("Solution"))
+      {
+        string sSituation = xSolution.GetAttribute("situation");
+        if (!TryParseSituation(sSituation, out byte[] situation))
+        {
+          throw new ApplicationException($"Fichier pilote incorrect, solution mal définie : {sSituation}");
+        }
+        List<int> mouvements = new List<int>();
+        foreach (XmlElement xMvt in xSolution.SelectNodes("Mvt"))
+        {
+          string sidxMvt = xMvt.GetAttribute("idx");
+          if (!int.TryParse(sidxMvt, out int idxMvt))
+          {
+            throw new ApplicationException($"Fichier pilote incorrect, mouvement de solution mal défini : {xMvt.OuterXml}");
+          }
+          mouvements.Add(idxMvt);
+        }
+        if (!plateau.AddSolution(situation, mouvements))
+        {
+          throw new ApplicationException($"Fichier pilote incorrect, solution mal définie : {xSolution.OuterXml}");
+        }
+      }
+      return plateau;
+    }
+
+    private bool AddSolution(byte[] situation, List<int> mouvements)
+    {
+      // TODO : vérifier la conformité des données de la solution
+      // vérifier la taille de situation, que son flag est correct
+      // vérifier que les indices des mouvements sont valides
+      // vérifier sur le plateau à C cases, le nombre de pierres P de situation, le nombre de mouvements M : 1 ≤ P < C, C+M=2P
+      // vérifier que ces mouvements sont possibles sur la situation passée en paramètre
+      Solution solution = new Solution(situation, mouvements);
+      return true;
+    }
+
+    private void InitEtat(bool complet, EnumReprise reprise, byte[] situationReprise)
+    {
+      // TODO : vérifier données fournies
+      // vérifier que situationEtat est TailleDescriptionSituationEtMasque      
+      // vérifier qu'elle décrit une situation existante avec les données stockées dans le niveau sous le plus élevé
+      // vérifier que son flag est celui de cette situation existante
+      Complet = complet;
+      Reprise = reprise;
+      if (reprise != EnumReprise.None)
+      {
+        if (situationReprise?.Length != TailleDescriptionSituationEtMasque)
+        {
+          throw new ArgumentException("situationReprise");
+        }
+        SituationReprise = new byte[TailleDescriptionSituationEtMasque];
+        Array.Copy(situationReprise, SituationReprise, TailleDescriptionSituationEtMasque);
+      }
+      else
+      {
+        if (situationReprise != null)
+        {
+          throw new ArgumentException("situationReprise");
+        }
+        SituationReprise = null;
+      }
     }
 
     public unsafe string ToString(byte* pElement)
@@ -502,5 +697,78 @@ namespace LeSolitaireLogique.Services
       }
       return sb.ToString();
     }
+
+    public string DescriptionPlateau()
+    {
+      char[,] caracteres = new char[TailleRectangleEnglobant.Width, TailleRectangleEnglobant.Height];
+      for (int y = 0; y < TailleRectangleEnglobant.Height; y++)
+      {
+        for (int x = 0; x < TailleRectangleEnglobant.Width; x++)
+        {
+          caracteres[x, y] = ' ';
+        }
+      }
+      foreach (var (x, y) in CoordonneesCases)
+      {
+        caracteres[x, y] = 'x';
+      }
+      StringBuilder sb = new StringBuilder();
+      for (int y = 0; y < TailleRectangleEnglobant.Height; y++)
+      {
+        for (int x = 0; x < TailleRectangleEnglobant.Width; x++)
+        {
+          sb.Append(caracteres[x, y]);
+        }
+        sb.AppendLine();
+      }
+      return sb.ToString();
+    }
+
+    private static bool TryParseReprise(string sReprise, out EnumReprise reprise)
+    {
+      if (string.IsNullOrEmpty(sReprise))
+      {
+        reprise = EnumReprise.None;
+        return true;
+      }
+      if (string.Compare(sReprise, "largeur", true) == 0)
+      {
+        reprise = EnumReprise.EnLargeur;
+        return true;
+      }
+      if (string.Compare(sReprise, "profondeur", true) == 0)
+      {
+        reprise = EnumReprise.EnProfondeur;
+        return true;
+      }
+      reprise = EnumReprise.None;
+      return false;
+    }
+    private static bool TryParseSituation(string sSituation, out byte[] situation)
+    {
+      situation = null;
+      if (situation?.Length != 2 * TailleDescriptionSituationEtMasque)
+      {
+        return false;
+      }
+      situation = new byte[TailleDescriptionSituationEtMasque];
+      for (int idx = 0; idx < TailleDescriptionSituationEtMasque; idx++)
+      {
+        string octet = sSituation.Substring(2 * idx, 2);
+        if (!byte.TryParse(octet, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte b))
+        {
+          return false;
+        }
+        situation[idx] = b;
+      }
+      return true;
+    }
+  }
+
+  internal enum EnumReprise
+  {
+    None,
+    EnLargeur,
+    EnProfondeur
   }
 }

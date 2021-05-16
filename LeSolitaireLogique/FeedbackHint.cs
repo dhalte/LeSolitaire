@@ -10,7 +10,9 @@ namespace LeSolitaireLogique
   {
     trace,
     info,
+    warning,
     error,
+    startOfJob,
     endOfJob,
   }
 }

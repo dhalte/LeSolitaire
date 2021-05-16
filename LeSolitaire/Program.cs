@@ -10,18 +10,19 @@ namespace LeSolitaire
 {
   static class Program
   {
+    private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
     /// <summary>
     /// Point d'entrée principal de l'application.
     /// </summary>
     [STAThread]
     static void Main()
     {
-      // string fichierLog = Path.Combine(Application.StartupPath, $"LeSolitaire {DateTime.Now:yyyy-MM-dd HH mm ss}.log");
-      // TimeSpan timeSpan = new TimeSpan(0, 0, 10);
-      // SuiviMemoire suiviMemoire = new SuiviMemoire(fichierLog, timeSpan);
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
+      Logger.Info("START");
       Application.Run(new frmMain());
+      Logger.Info("STOP");
     }
   }
 }

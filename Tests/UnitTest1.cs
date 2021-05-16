@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LeSolitaireLogiqueV0;
 using System.Diagnostics;
 using System.Xml;
 using System.Text;
@@ -17,54 +16,6 @@ namespace Tests
   [TestClass]
   public class UnitTest1
   {
-    // Test du mécanisme de comparaison d'une Situation avec la SituationEtude correspondante
-    [TestMethod]
-    public void TestComparaisonSituationSituationEtendue()
-    {
-      string config = @"<?xml version=""1.0"" encoding=""utf-8""?>
-<solitaire>
-  <parametres nd=""9"" nf=""12"" />
-  <plateau>
-  ooo
- ooxoo
-ooooooo
-oooxxoo
-ooooooo
- ooooo
-  ooo
-  </plateau>
-</solitaire>";
-      Pilote parLesDeuxBoutsConfig = new Pilote(config);
-      Plateau plateau = new Plateau(parLesDeuxBoutsConfig.PlateauRaw);
-      SituationRaw plateauRaw = parLesDeuxBoutsConfig.PlateauRaw;
-      Situation situation = new Situation(plateau.Etendue, plateauRaw);
-      SituationEtude situationEtude = new SituationEtude(plateau);
-      situationEtude.ChargeSituationRaw(plateauRaw);
-      // Juste pour le test
-      Array.Copy(situationEtude.Pierres, situationEtude.ImagePierres, plateau.Etendue.NbCasesRectangleEnglobant);
-      HashSet<SituationBase> situations = new HashSet<SituationBase>();
-      situations.Add(situation);
-      bool b = situations.Contains(situationEtude);
-      Assert.IsTrue(b);
-    }
-
-    [TestMethod]
-    public void TestModifCollection()
-    {
-      List<SituationInitiale> EI = new List<SituationInitiale>();
-      bool[] pierres = new bool[37];
-      for (int i = 0; i < 15; i++)
-      {
-        Situation s = new Situation(pierres);
-        SituationInitiale si = new SituationInitiale(s);
-        if (i % 2 == 1) si.Resolue = true;
-        EI.Add(si);
-      }
-      foreach (SituationInitiale si in EI.FindAll(si => !si.Resolue))
-      {
-        si.Resolue = true;
-      }
-    }
 
 
     // A quoi sert l'attribut [Flags] d'une énumération
@@ -131,7 +82,7 @@ ooooooo
       e = 8,         // _1___
       f = 16         // 1____
     }
-    
+
     [TestMethod]
     public void TesteEnum()
     {
@@ -145,94 +96,6 @@ ooooooo
     }
 
     // Evaluation de la variance des situations finales
-    [TestMethod]
-    public void EvaluationVarianceSituationsGagnantes()
-    {
-      string descriptionPlateau = @"
-  xxx
- xxxxx
-xxxxxxx
-xxxxxxx
-xxxxxxx
- xxxxx
-  xxx
-";
-      string fileName = @"C:\Users\halte\reposDivers\LeSolitaire\Jeux\Plateau Français\EF.dat";
-      // il y a 1 pierre dans une SG, 13 mouvements qui séparent une SF d'une SG, donc 14 pierres dans une SF.
-      int NbPierres = 14;
-      // Le plateau est constitué de 7 colonnes
-      int NbColonnes = 7;
-      byte[] buffer = new byte[NbPierres];
-      Plateau plateau = new Plateau(Common.ChargeSituationRaw(descriptionPlateau));
-      using (FileStream EFdat = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-      {
-        long EFlen = EFdat.Length;
-        Assert.IsTrue(EFlen % NbPierres == 0);
-        // Une première étude a montré que les variances étaient comprises entre 0 et 8
-        // Je constitue une statistique de ces variances en les comptant par tranches de 0.01, ce qui fait au plus 800 tranches
-        int[] statistiques = new int[800];
-        long idxSituation = 0;
-        float Gt = 0, Vt = 0, Vmax = 0;
-        for (; ; )
-        {
-          int n = EFdat.Read(buffer, 0, NbPierres);
-          if (n == 0)
-          {
-            break;
-          }
-          Assert.IsTrue(n == NbPierres);
-          // Calcul de la variance de cette situation
-          long X2 = 0, Y2 = 0, X = 0, Y = 0;
-          for (int idxPierreInBuffer = 0; idxPierreInBuffer < NbPierres; idxPierreInBuffer++)
-          {
-            int idxPierre = buffer[idxPierreInBuffer];
-            int x = idxPierre % NbColonnes, y = idxPierre / NbColonnes;
-            X += x;
-            Y += y;
-            X2 += x * x;
-            Y2 += y * y;
-          }
-          float V = 1f / NbPierres * (X2 + Y2 - 1f / NbPierres * (X * X + Y * Y));
-          Assert.IsTrue(V > 0);
-          if (Vmax < V)
-          {
-            Debug.Print($"idxSituation={idxSituation}, V={V}");
-            Situation situation = new Situation(buffer);
-            Debug.Print($"{situation.Dump(plateau)}");
-            Vmax = V;
-          }
-          int idxStatistique = (int)(100 * V);
-          statistiques[idxStatistique]++;
-          idxSituation++;
-          Gt += V;
-          Vt += V * V;
-        }
-        Debug.Print($"Gt={Gt / idxSituation}, Vt={1f / idxSituation * (Vt - 1f / idxSituation * Gt * Gt)}");
-        for (int idxStatique = 0; idxStatique < statistiques.Length; idxStatique++)
-        {
-          Debug.Print($"{idxStatique / 100f:0.000} {statistiques[idxStatique]}");
-        }
-      }
-    }
-
-    // Evaluation des collisions dans la table EF.dat
-    // Une collision se produit lorsque deux situations différentes ont même hashcode.
-    // On parcourt donc les situations à 14 pierres de EF.dat et on décompte le nombre
-    // de situations réparties selon leur clé de hashage.
-    // Le problème est que le test s'exécute dans un environnement qui provoque des OutOfMemory exceptions
-    // Même en ajoutant un App.config avec
-    //    <runtime>     <gcAllowVeryLargeObjects enabled = "true" />   </ runtime >
-    // cela n'a rien arrangé.
-    // Alors j'ai fait exécuter le test au démarrage ( Program.Main() ) et j'ai obtenu un résultat surprenant :
-    // Il y a exactement autant de keys que de values. Donc si j'en crois ce résultat, il n'y a aucune collision.
-
-    [TestMethod]
-    public void Testupletliste()
-    {
-      List<(int x, int y)> t = new List<(int x, int y)>();
-      t.Add((1, 2));
-      t[0] = (t[0].x + 10, t[0].y + 20);
-    }
 
     // Où on vérifie que la version Array.Sort(keys,arr) tri aussi les keys
     [TestMethod]
@@ -272,8 +135,9 @@ xxxxxxx
     // La simple déclaration d'un uplet suffit à lui allouer de la mémoire
     // on peut aussi l'utiliser pour lui assigner de nouvelles valeurs, je ne sais pas si cela se fait
     // par réutilisation de la mémoire déjà allouée ou allocation d'une nouvelle zone mémoire.
-    // On ne peut utiliser fixed() sur des uplets.
+    // On ne peut utiliser fixed() sur des uplets, mais on peut le faire sur ses membres.
     (byte[] b, int i) uplet;
+
     [TestMethod]
     public unsafe void TestUplet()
     {
@@ -288,6 +152,28 @@ xxxxxxx
       uplet.b[1] = 100;
       uplet.i = 12;
       Debug.Print($"{uplet.b[0]}, {uplet.b[1]}, {uplet.i}");
+
+      fixed (byte* p = uplet.b)
+      {
+        Debug.Print($"@p = {new IntPtr(p)}");
+      }
     }
+
+    // On vérifie que Array.Copy(T,T,) fonctionne
+    [TestMethod]
+    public unsafe void TestCopyArray()
+    {
+      int[] a1 = new int[5];
+      for (int i = 0; i < 5; i++)
+      {
+        a1[i] = i;
+      }
+      Array.Copy(a1, a1, 5);
+      for (int i = 0; i < 5; i++)
+      {
+        Assert.IsTrue(a1[i] == i);
+      }
+    }
+
   }
 }

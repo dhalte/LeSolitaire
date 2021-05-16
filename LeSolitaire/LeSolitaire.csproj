@@ -35,8 +35,16 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.7.10\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,6 +56,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ActionControle.cs" />
+    <Compile Include="dlgChoixRepertoire.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="dlgChoixRepertoire.Designer.cs">
+      <DependentUpon>dlgChoixRepertoire.cs</DependentUpon>
+    </Compile>
+    <Compile Include="dlgChoixPlateau.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="dlgChoixPlateau.Designer.cs">
+      <DependentUpon>dlgChoixPlateau.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -56,6 +77,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="dlgChoixRepertoire.resx">
+      <DependentUpon>dlgChoixRepertoire.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="dlgChoixPlateau.resx">
+      <DependentUpon>dlgChoixPlateau.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.cs</DependentUpon>
     </EmbeddedResource>
@@ -69,6 +96,13 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="..\.editorconfig">
+      <Link>.editorconfig</Link>
+    </None>
+    <None Include="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -95,6 +129,10 @@
     <None Include="Resources\Effacer32x18.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LeSolitaireLogique\LeSolitaireLogique.csproj">
+      <Project>{bca4c8a5-e3fa-468a-a31d-1b887df668eb}</Project>
+      <Name>LeSolitaireLogique</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UserControls\UserControls.csproj">
       <Project>{afca6834-e6c0-416d-a9a3-e65f08c46964}</Project>
       <Name>UserControls</Name>

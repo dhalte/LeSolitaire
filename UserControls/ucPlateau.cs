@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using LeSolitaireLogiqueV0;
+using LeSolitaireLogique;
 
 namespace UserControls
 {

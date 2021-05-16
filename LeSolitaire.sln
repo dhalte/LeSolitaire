@@ -7,15 +7,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeSolitaire", "LeSolitaire\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserControls", "UserControls\UserControls.csproj", "{AFCA6834-E6C0-416D-A9A3-E65F08C46964}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeSolitaireLogiqueV0", "LeSolitaireLogiqueV0\LeSolitaireLogiqueV0.csproj", "{217545B9-8EDC-44D6-8F25-C257E69D5260}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{8F5F84BB-3FF0-4846-A6AF-FD8BD9165EE0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeSolitaireMySQL", "LeSolitaireMySQL\LeSolitaireMySQL.csproj", "{6CF10979-FBAC-44C0-ADB9-2C2CE345301C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeSolitaireLogique", "LeSolitaireLogique\LeSolitaireLogique.csproj", "{BCA4C8A5-E3FA-468A-A31D-1B887DF668EB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeSolitaireStockage", "LeSolitaireStockage\LeSolitaireStockage.csproj", "{A5E0E0C6-693E-474C-AA0F-E211C414770F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTree", "BTree\BTree.csproj", "{A5E0E0C6-693E-474C-AA0F-E211C414770F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4A3A3891-774C-4FE6-AD9F-30493141E691}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,18 +32,10 @@ Global
 		{AFCA6834-E6C0-416D-A9A3-E65F08C46964}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFCA6834-E6C0-416D-A9A3-E65F08C46964}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFCA6834-E6C0-416D-A9A3-E65F08C46964}.Release|Any CPU.Build.0 = Release|Any CPU
-		{217545B9-8EDC-44D6-8F25-C257E69D5260}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{217545B9-8EDC-44D6-8F25-C257E69D5260}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{217545B9-8EDC-44D6-8F25-C257E69D5260}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{217545B9-8EDC-44D6-8F25-C257E69D5260}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8F5F84BB-3FF0-4846-A6AF-FD8BD9165EE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8F5F84BB-3FF0-4846-A6AF-FD8BD9165EE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F5F84BB-3FF0-4846-A6AF-FD8BD9165EE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F5F84BB-3FF0-4846-A6AF-FD8BD9165EE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6CF10979-FBAC-44C0-ADB9-2C2CE345301C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6CF10979-FBAC-44C0-ADB9-2C2CE345301C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6CF10979-FBAC-44C0-ADB9-2C2CE345301C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6CF10979-FBAC-44C0-ADB9-2C2CE345301C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BCA4C8A5-E3FA-468A-A31D-1B887DF668EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BCA4C8A5-E3FA-468A-A31D-1B887DF668EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCA4C8A5-E3FA-468A-A31D-1B887DF668EB}.Release|Any CPU.ActiveCfg = Release|Any CPU

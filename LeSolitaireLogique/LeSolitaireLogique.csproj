@@ -33,8 +33,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.7.10\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -43,19 +51,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="enumOp.cs" />
     <Compile Include="FeedbackHint.cs" />
     <Compile Include="Feedback.cs" />
     <Compile Include="Moteur.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\enumSymetries.cs" />
     <Compile Include="Services\Matrice2x3.cs" />
+    <Compile Include="Services\Mouvement.cs" />
+    <Compile Include="Services\Mouvements.cs" />
     <Compile Include="Services\Plateau.cs" />
+    <Compile Include="Services\Solution.cs" />
+    <Compile Include="SurveillanceMemoire.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LeSolitaireStockage\LeSolitaireStockage.csproj">
+    <ProjectReference Include="..\Btree\BTree.csproj">
       <Project>{a5e0e0c6-693e-474c-aa0f-e211c414770f}</Project>
-      <Name>LeSolitaireStockage</Name>
+      <Name>BTree</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
