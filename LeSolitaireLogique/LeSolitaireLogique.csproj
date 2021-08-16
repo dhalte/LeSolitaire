@@ -57,11 +57,14 @@
     <Compile Include="Moteur.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\enumSymetries.cs" />
+    <Compile Include="Services\EtapeRechercheEnProfondeur.cs" />
+    <Compile Include="Services\EtapesRechercheEnProfondeur.cs" />
     <Compile Include="Services\Matrice2x3.cs" />
     <Compile Include="Services\Mouvement.cs" />
     <Compile Include="Services\Mouvements.cs" />
     <Compile Include="Services\Plateau.cs" />
     <Compile Include="Services\Solution.cs" />
+    <Compile Include="Services\SolutionDetaillee.cs" />
     <Compile Include="SurveillanceMemoire.cs" />
   </ItemGroup>
   <ItemGroup>

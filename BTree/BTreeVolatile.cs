@@ -61,6 +61,8 @@ namespace BTree
           fixed (byte* pSituationExistante = &noeudActuel.data[1 + idxPosition * TailleElement])
           {
             // On donne une chance à l'appelant de modifier les données variables de la situation stockée dans l'arbre
+            //  param1 : situation passée en paramètre
+            //  param2 : situation existante dans le B-Tree, et MajSituation renvoie true s'il modifie param2
             bool bModifie = Comparateur.MajSituation(pSituation, pSituationExistante);
             if (bModifie)
             {
@@ -349,9 +351,51 @@ namespace BTree
     {
       return noeud.Enfants[idxEnfant];
     }
-    public bool Existe(byte[] situation)
+    
+    public unsafe bool Existe(byte* pSituation)
     {
-      throw new NotImplementedException();
+      // Cas particulier de l'arbre vide
+      if (Racine.NbElements == 0)
+      {
+        return false;
+      }
+      int idxProfondeur;
+      NoeudVolatile noeudActuel = Racine;
+      for (idxProfondeur = Profondeur; idxProfondeur >= 0; idxProfondeur--)
+      {
+        bool bFound = RechercheDichotomique(pSituation, noeudActuel, out int idxPosition);
+        if (bFound)
+        {
+          // La situation en paramètre est déjà présente dans l'arbre. idxPosition est alors >= 0
+          fixed (byte* pSituationExistante = &noeudActuel.data[1 + idxPosition * TailleElement])
+          {
+            // On donne une chance à l'appelant de modifier les données variables de la situation stockée dans l'arbre
+            // ATTENTION : dans l'insertion,
+            //  param1 : situation passée en paramètre
+            //  param2 : situation existante dans le B-Tree, et MajSituation renvoie true s'il modifie param2,
+            //  et la modification de la situation du B-Tree sera alors enregistrée dans le B-Tree
+            // Dans la recherche, 
+            //  param1 : situation existante dans le B-Tree, et MajSituation renvoie true s'il modifie param2
+            //  param2 : situation passée en paramètre, et MajSituation va mettre à jour la situation passée en paramètre, pas celle du B-Tree
+            Comparateur.MajSituation(pSituationExistante, pSituation);
+            return true;
+          }
+        }
+        if (idxProfondeur > 0)
+        {
+          noeudActuel = GetNoeudEnfant(noeudActuel, idxProfondeur, idxPosition + 1);
+        }
+      }
+      // Si on arrive ici, c'est qu'on n'a pas trouvé la situation passée en paramètre
+      return false;
+    }
+
+    public unsafe bool Existe(byte[] situation)
+    {
+      fixed(byte*pSituation = situation)
+      {
+        return Existe(pSituation);
+      }
     }
     internal virtual void CreeNouvelleRacine(DataRemonteeVolatile dataRemontee)
     {

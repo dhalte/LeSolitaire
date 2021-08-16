@@ -221,5 +221,56 @@ namespace Tests
         Assert.IsTrue(idxElt == listElements.Count);
       }
     }
+
+    [TestMethod]
+    public unsafe void TestExistence()
+    {
+      int ordre = 4;
+      int nbElt = 100;
+      int maxElt = 2_000;
+      int nbEltInseres = -1;
+      List<int> listElements = new List<int>();
+      Stopwatch sw = Stopwatch.StartNew();
+      BTreeVolatile stock = new BTreeVolatile(tailleElement, ordre, cmp);
+      stock.InitBTree();
+      Random rnd = new Random(0);
+      byte[] data = new byte[tailleElement];
+      nbEltInseres = 0;
+      int idxElt;
+      for (idxElt = 0; idxElt < nbElt; idxElt++)
+      {
+        int elt = rnd.Next(maxElt);
+        ConvertInt2Byte(elt, data);
+        fixed (byte* pData = data)
+        {
+          InsertOrUpdateResult result = stock.InsertOrUpdate(pData);
+          //Debug.Print($"{elt}, {result}");
+          if (result == InsertOrUpdateResult.Inserted)
+          {
+            listElements.Add(elt);
+            nbEltInseres++;
+          }
+        }
+      }
+      sw.Stop();
+      Trace.WriteLine($"{nbEltInseres}/{nbElt} insérés en {sw.Elapsed}");
+      listElements.Sort();
+      idxElt = 0;
+      for (int elt = -5; elt < maxElt + 5; elt++)
+      {
+        while (idxElt < listElements.Count && listElements[idxElt] < elt)
+        {
+          idxElt++;
+        }
+        bool bExistAttendu = (idxElt < listElements.Count && listElements[idxElt] == elt);
+        ConvertInt2Byte(elt, data);
+        fixed (byte* pSituation = data)
+        {
+          bool bExist = stock.Existe(pSituation);
+          Assert.IsTrue(bExistAttendu == bExist);
+        }
+      }
+    }
+
   }
 }

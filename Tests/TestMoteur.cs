@@ -35,5 +35,31 @@ xxxxxxx
 ";
       moteur.Initialise(descriptionPlateau);
     }
+
+    [TestMethod]
+    public void TestMouvementsOriginels()
+    {
+      DirectoryInfo tmp = new DirectoryInfo("tmp");
+      if (tmp.Exists)
+      {
+        tmp.Delete(true);
+      }
+      Moteur moteur = new Moteur(tmp.FullName, this);
+      string descriptionPlateau;
+      descriptionPlateau = @"
+  xxx   
+  xxx   
+xxxxxxx
+xxxxxxx
+xxxxxxx
+  xxx   
+  xxx   
+";
+      moteur.Initialise(descriptionPlateau);
+      Stopwatch sw = Stopwatch.StartNew();
+      moteur.TestMouvementsOriginels();
+      sw.Stop();
+      Trace.WriteLine($"durée : {sw.ElapsedMilliseconds} ms");
+    }
   }
 }

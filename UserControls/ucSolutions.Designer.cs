@@ -30,7 +30,7 @@ namespace UserControls
     private void InitializeComponent()
     {
       this.cbListeSolutions = new System.Windows.Forms.ComboBox();
-      this.ucAffichageSolution = new UserControls.ucPlateau();
+      this.ucPlateau = new UserControls.ucPlateau();
       this.SuspendLayout();
       // 
       // cbListeSolutions
@@ -43,24 +43,25 @@ namespace UserControls
       this.cbListeSolutions.Name = "cbListeSolutions";
       this.cbListeSolutions.Size = new System.Drawing.Size(819, 21);
       this.cbListeSolutions.TabIndex = 2;
+      this.cbListeSolutions.SelectedIndexChanged += new System.EventHandler(this.cbListeSolutions_SelectedIndexChanged);
       // 
-      // ucAffichageSolution
+      // ucPlateau
       // 
-      this.ucAffichageSolution.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+      this.ucPlateau.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-      this.ucAffichageSolution.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-      this.ucAffichageSolution.Location = new System.Drawing.Point(5, 35);
-      this.ucAffichageSolution.Margin = new System.Windows.Forms.Padding(6);
-      this.ucAffichageSolution.Name = "ucAffichageSolution";
-      this.ucAffichageSolution.Size = new System.Drawing.Size(823, 543);
-      this.ucAffichageSolution.TabIndex = 3;
+      this.ucPlateau.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+      this.ucPlateau.Location = new System.Drawing.Point(5, 35);
+      this.ucPlateau.Margin = new System.Windows.Forms.Padding(6);
+      this.ucPlateau.Name = "ucPlateau";
+      this.ucPlateau.Size = new System.Drawing.Size(823, 543);
+      this.ucPlateau.TabIndex = 3;
       // 
       // ucSolutions
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.Controls.Add(this.ucAffichageSolution);
+      this.Controls.Add(this.ucPlateau);
       this.Controls.Add(this.cbListeSolutions);
       this.Name = "ucSolutions";
       this.Size = new System.Drawing.Size(833, 584);
@@ -71,6 +72,6 @@ namespace UserControls
     #endregion
 
     private System.Windows.Forms.ComboBox cbListeSolutions;
-    private ucPlateau ucAffichageSolution;
+    private ucPlateau ucPlateau;
   }
 }

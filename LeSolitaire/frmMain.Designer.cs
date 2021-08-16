@@ -38,11 +38,14 @@ namespace LeSolitaire
       this.mnuRechercheEnLargeur = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuRechercheEnProfondeur = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuSuspendre = new System.Windows.Forms.ToolStripMenuItem();
+      this.mnuConsolider = new System.Windows.Forms.ToolStripMenuItem();
+      this.mnuStats = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuVue = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuSuivi = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuResultats = new System.Windows.Forms.ToolStripMenuItem();
       this.ucSuivi = new UserControls.ucSuivi();
       this.ucSolutions = new UserControls.ucSolutions();
+      this.mnuVerifier = new System.Windows.Forms.ToolStripMenuItem();
       this.mainMenu.SuspendLayout();
       this.SuspendLayout();
       // 
@@ -87,7 +90,10 @@ namespace LeSolitaire
       this.mnuAction.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuRechercheEnLargeur,
             this.mnuRechercheEnProfondeur,
-            this.mnuSuspendre});
+            this.mnuSuspendre,
+            this.mnuConsolider,
+            this.mnuStats,
+            this.mnuVerifier});
       this.mnuAction.Name = "mnuAction";
       this.mnuAction.Size = new System.Drawing.Size(54, 20);
       this.mnuAction.Text = "&Action";
@@ -105,12 +111,28 @@ namespace LeSolitaire
       this.mnuRechercheEnProfondeur.Name = "mnuRechercheEnProfondeur";
       this.mnuRechercheEnProfondeur.Size = new System.Drawing.Size(208, 22);
       this.mnuRechercheEnProfondeur.Text = "Recherche en &Profondeur";
+      this.mnuRechercheEnProfondeur.Click += new System.EventHandler(this.mnuRechercheEnProfondeur_Click);
       // 
       // mnuSuspendre
       // 
       this.mnuSuspendre.Name = "mnuSuspendre";
       this.mnuSuspendre.Size = new System.Drawing.Size(208, 22);
       this.mnuSuspendre.Text = "&Suspendre";
+      this.mnuSuspendre.Click += new System.EventHandler(this.mnuSuspendre_Click);
+      // 
+      // mnuConsolider
+      // 
+      this.mnuConsolider.Name = "mnuConsolider";
+      this.mnuConsolider.Size = new System.Drawing.Size(208, 22);
+      this.mnuConsolider.Text = "&Consolider";
+      this.mnuConsolider.Click += new System.EventHandler(this.mnuConsolider_Click);
+      // 
+      // mnuStats
+      // 
+      this.mnuStats.Name = "mnuStats";
+      this.mnuStats.Size = new System.Drawing.Size(208, 22);
+      this.mnuStats.Text = "Stats";
+      this.mnuStats.Click += new System.EventHandler(this.mnuStats_Click);
       // 
       // mnuVue
       // 
@@ -152,6 +174,13 @@ namespace LeSolitaire
       this.ucSolutions.TabIndex = 2;
       this.ucSolutions.Visible = false;
       // 
+      // mnuVerifier
+      // 
+      this.mnuVerifier.Name = "mnuVerifier";
+      this.mnuVerifier.Size = new System.Drawing.Size(208, 22);
+      this.mnuVerifier.Text = "&Vérifier";
+      this.mnuVerifier.Click += new System.EventHandler(this.mnuVerifier_Click);
+      // 
       // frmMain
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
@@ -187,6 +216,9 @@ namespace LeSolitaire
     private System.Windows.Forms.ToolStripMenuItem mnuResultats;
     private ucSuivi ucSuivi;
     private ucSolutions ucSolutions;
+    private System.Windows.Forms.ToolStripMenuItem mnuConsolider;
+    private System.Windows.Forms.ToolStripMenuItem mnuStats;
+    private System.Windows.Forms.ToolStripMenuItem mnuVerifier;
   }
 }
 

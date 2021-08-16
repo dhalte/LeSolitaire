@@ -14,7 +14,7 @@ namespace LeSolitaire
     public const string KeyListe = "LeSolitaire";
     private bool IsLoaded = false;
     private bool IsRunning = false;
-    private Moteur Moteur;
+    internal Moteur Moteur;
     private readonly Feedback Parent;
     internal ActionControle(Feedback parent)
     {
@@ -34,8 +34,22 @@ namespace LeSolitaire
     {
       return IsLoaded && !IsRunning;
     }
+    internal bool AutoriserStats()
+    {
+      return IsLoaded && !IsRunning;
+    }
+
+    internal bool AutoriserVerifier()
+    {
+      return IsLoaded && !IsRunning;
+    }
 
     internal bool AutoriserRechercheEnProfondeur()
+    {
+      return IsLoaded && !IsRunning;
+    }
+
+    internal bool AutoriserConsolider()
     {
       return IsLoaded && !IsRunning;
     }
@@ -58,6 +72,8 @@ namespace LeSolitaire
       Moteur.Initialise(description);
       IsLoaded = true;
     }
+
+
     internal void Charger(string pathRepertoireStockage)
     {
       IsLoaded = false;
@@ -89,6 +105,32 @@ namespace LeSolitaire
     internal void LanceRechercheEnLargeur()
     {
       Moteur.LanceRechercheEnLargeur();
+    }
+
+    internal void LancerStats()
+    {
+      Moteur.LancerStats();
+    }
+
+    internal void LanceRechercheEnProfondeur()
+    {
+      Moteur.LanceRechercheEnProfondeur();
+    }
+
+    internal void LanceConsolidation()
+    {
+      Moteur.LanceConsolidation();
+    }
+
+    internal void Suspendre()
+    {
+      Parent?.Feedback(FeedbackHint.info, "Suspension demandée");
+      Moteur.Suspendre();
+    }
+
+    internal void LancerVerifier()
+    {
+      Moteur.LancerVerifier();
     }
   }
 }

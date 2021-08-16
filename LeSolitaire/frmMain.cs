@@ -44,6 +44,9 @@ namespace LeSolitaire
       mnuRechercheEnLargeur.Enabled = ActionControle.AutoriserRechercheEnLargeur();
       mnuRechercheEnProfondeur.Enabled = ActionControle.AutoriserRechercheEnProfondeur();
       mnuSuspendre.Enabled = ActionControle.AutoriserSuspendre();
+      mnuConsolider.Enabled = ActionControle.AutoriserConsolider();
+      mnuStats.Enabled = ActionControle.AutoriserStats();
+      mnuVerifier.Enabled = ActionControle.AutoriserVerifier();
     }
 
     private void mnuVue_DropDownOpening(object sender, EventArgs e)
@@ -118,6 +121,7 @@ namespace LeSolitaire
         ucSuivi.Hide();
         ucSuivi.Dock = DockStyle.None;
         ucSolutions.Dock = DockStyle.Fill;
+        ucSolutions.Init(ActionControle.Moteur);
         ucSolutions.Show();
         mnuSuivi.Checked = false;
         mnuResultats.Checked = true;
@@ -167,6 +171,31 @@ namespace LeSolitaire
     private void mnuRechercheEnLargeur_Click(object sender, EventArgs e)
     {
       ActionControle.LanceRechercheEnLargeur();
+    }
+
+    private void mnuRechercheEnProfondeur_Click(object sender, EventArgs e)
+    {
+      ActionControle.LanceRechercheEnProfondeur();
+    }
+
+    private void mnuConsolider_Click(object sender, EventArgs e)
+    {
+      ActionControle.LanceConsolidation();
+    }
+
+    private void mnuSuspendre_Click(object sender, EventArgs e)
+    {
+      ActionControle.Suspendre();
+    }
+
+    private void mnuStats_Click(object sender, EventArgs e)
+    {
+      ActionControle.LancerStats();
+    }
+
+    private void mnuVerifier_Click(object sender, EventArgs e)
+    {
+      ActionControle.LancerVerifier();
     }
   }
 }

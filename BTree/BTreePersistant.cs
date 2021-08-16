@@ -144,13 +144,14 @@ namespace BTree
     {
       if (noeud.dirty)
       {
-        ((NiveauPersistant)Niveaux[profondeur]).Flush(noeud, offsetNoeud);
+        Niveaux[profondeur].Flush(noeud, offsetNoeud);
       }
       if (!noeud.IsFeuille)
       {
         for (int idxEnfant = 0; idxEnfant <= noeud.NbElements; idxEnfant++)
         {
-          Flush((NoeudPersistant)noeud.Enfants[idxEnfant], profondeur - 1, (noeud).OffsetEnfants[idxEnfant]);
+          NoeudPersistant noeudEnfant = (NoeudPersistant)GetNoeudEnfant(noeud, profondeur, idxEnfant);
+          Flush(noeudEnfant, profondeur - 1, noeud.OffsetEnfants[idxEnfant]);
         }
       }
     }
@@ -159,6 +160,37 @@ namespace BTree
       for (int idxProfondeur = 0; idxProfondeur <= Profondeur; idxProfondeur++)
       {
         ((NiveauPersistant)Niveaux[idxProfondeur]).Close();
+      }
+    }
+
+    // Suppression des noeuds feuille de la mémoire
+    // Attention : ils doivent avoir été sauvés sur disque si besoin.
+    public void LibereMemoire()
+    {
+      // On débute par la racine
+      LibereMemoire(Racine, Profondeur);
+    }
+
+    private void LibereMemoire(NoeudVolatile noeud, int profondeur)
+    {
+      if (profondeur > 0)
+      {
+        for (int idxEnfant = 0; idxEnfant < Ordre; idxEnfant++)
+        {
+          NoeudPersistant enfant = (NoeudPersistant)noeud.Enfants[idxEnfant];
+          if (enfant != null)
+          {
+            LibereMemoire(noeud.Enfants[idxEnfant], profondeur - 1);
+          }
+        }
+      }
+      if (profondeur == 1)
+      {
+        for (int idxEnfant = 0; idxEnfant < Ordre; idxEnfant++)
+        {
+          // S'il n'était pas null, n'ayant plus de référence, le Garbage Collector saura récupérer sa mémoire.
+          noeud.Enfants[idxEnfant] = null;
+        }
       }
     }
   }

@@ -210,5 +210,124 @@ namespace Tests
       }
       stock.Close();
     }
+
+    [TestMethod]
+    public unsafe void TestExistence()
+    {
+      int ordre = 4;
+      int nbElt = 100;
+      int maxElt = 2_000;
+      int nbEltInseres = -1;
+      List<int> listElements = new List<int>();
+      if (diRepertoire.Exists)
+      {
+        diRepertoire.Delete(true);
+      }
+      diRepertoire.Create();
+      Stopwatch sw = Stopwatch.StartNew();
+      BTreePersistant stock = new BTreePersistant(diRepertoire, tailleElement, ordre, cmp);
+      stock.InitBTree();
+      Random rnd = new Random(0);
+      byte[] data = new byte[tailleElement];
+      nbEltInseres = 0;
+      int idxElt;
+      for (idxElt = 0; idxElt < nbElt; idxElt++)
+      {
+        int elt = rnd.Next(maxElt);
+        ConvertInt2Byte(elt, data);
+        fixed (byte* pData = data)
+        {
+          InsertOrUpdateResult result = stock.InsertOrUpdate(pData);
+          //Debug.Print($"{elt}, {result}");
+          if (result == InsertOrUpdateResult.Inserted)
+          {
+            listElements.Add(elt);
+            nbEltInseres++;
+          }
+        }
+      }
+      stock.Flush();
+      stock.Close();
+      sw.Stop();
+      Trace.WriteLine($"{nbEltInseres}/{nbElt} insérés en {sw.Elapsed}");
+      stock = new BTreePersistant(diRepertoire, tailleElement, ordre, cmp);
+      stock.InitBTree();
+      listElements.Sort();
+      idxElt = 0;
+      for (int elt = -5; elt < maxElt + 5; elt++)
+      {
+        while (idxElt < listElements.Count && listElements[idxElt] < elt)
+        {
+          idxElt++;
+        }
+        bool bExistAttendu = (idxElt < listElements.Count && listElements[idxElt] == elt);
+        ConvertInt2Byte(elt, data);
+        fixed (byte* pSituation = data)
+        {
+          bool bExist = stock.Existe(pSituation);
+          Assert.IsTrue(bExistAttendu == bExist);
+        }
+      }
+      stock.Close();
+    }
+
+    [TestMethod]
+    public unsafe void TestLibereMemoire()
+    {
+      if (diRepertoire.Exists)
+      {
+        diRepertoire.Delete(true);
+      }
+      diRepertoire.Create();
+      BTreePersistant stock = new BTreePersistant(diRepertoire, tailleElement, ordre, cmp);
+      stock.InitBTree();
+      Random rnd = new Random(0);
+      byte[] data = new byte[tailleElement];
+      nbEltInseres = 0;
+      Stopwatch sw = Stopwatch.StartNew();
+      for (int idxTest = 0; idxTest < 5; idxTest++)
+      {
+        Stopwatch sw1 = Stopwatch.StartNew();
+        for (int idxElt = 0; idxElt < nbElt; idxElt++)
+        {
+          int elt = rnd.Next(maxElt);
+          ConvertInt2Byte(elt, data);
+          fixed (byte* pData = data)
+          {
+            InsertOrUpdateResult result = stock.InsertOrUpdate(pData);
+            //Debug.Print($"{elt}, {result}");
+            if (result == InsertOrUpdateResult.Inserted)
+            {
+              nbEltInseres++;
+            }
+          }
+        }
+        Trace.WriteLine($"durée insertions : {sw1.ElapsedMilliseconds} ms");
+        sw1.Restart();
+        stock.Flush();
+        Trace.WriteLine($"durée flush : {sw1.ElapsedMilliseconds} ms");
+        sw1.Restart();
+        long beforeCollecte = GC.GetTotalMemory(false);
+        stock.LibereMemoire();
+        GC.Collect();
+        long afterCollecte = GC.GetTotalMemory(false);
+        Trace.WriteLine($"GC before {beforeCollecte}, after {afterCollecte}, durée collecte : {sw1.ElapsedMilliseconds} ms");
+      }
+      Trace.WriteLine($"nb inserés : {nbEltInseres}");
+      int elementPrecedent = int.MinValue;
+      int nbElementsLus = 0;
+      sw.Restart();
+      foreach (var element in stock.EnumereElements())
+      {
+        int elementLu = ConvertByte2Int(element);
+        Assert.IsTrue(elementPrecedent < elementLu);
+        nbElementsLus++;
+      }
+      Assert.IsTrue(nbElementsLus == nbEltInseres);
+      Trace.WriteLine($"durée vérification : {sw.ElapsedMilliseconds} ms");
+      sw.Restart();
+      stock.Close();
+      Trace.WriteLine($"durée close : {sw.ElapsedMilliseconds} ms");
+    }
   }
 }
